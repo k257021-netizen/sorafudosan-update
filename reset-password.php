@@ -1,0 +1,11 @@
+<?php
+require 'db.php';
+$token=input_string($_GET['token'] ?? $_POST['token'] ?? ''); $error=''; $done=false; $customerId=0; $tokenId=0;
+if (preg_match('/^[a-f0-9]{64}$/',$token)) { $stmt=$pdo->prepare("SELECT id,customer_id FROM customer_tokens WHERE purpose='reset' AND token_hash=? AND used_at IS NULL AND expires_at>CURRENT_TIMESTAMP LIMIT 1"); $stmt->execute([hash('sha256',$token)]); if($row=$stmt->fetch()){ $tokenId=(int)$row['id']; $customerId=(int)$row['customer_id']; } }
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+ if (!csrf_valid($_POST['csrf']??'')) $error='ページの有効期限が切れました。';
+ elseif(!$customerId) $error='リンクが無効か、有効期限が切れています。';
+ else { $password=input_string($_POST['password']??''); if(strlen($password)<8||strlen($password)>72) $error='パスワードは8〜72文字で入力してください。'; elseif($password!==input_string($_POST['password_confirm']??'')) $error='確認用パスワードが一致しません。'; else { $pdo->beginTransaction(); $pdo->prepare('UPDATE customers SET password_hash=? WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$customerId]); $pdo->prepare("UPDATE customer_tokens SET used_at=CURRENT_TIMESTAMP WHERE customer_id=? AND purpose='reset' AND used_at IS NULL")->execute([$customerId]); $pdo->commit(); $done=true; } }
+}
+?>
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>新しいパスワード | Sora Living</title><link rel="stylesheet" href="style.css"><body><main class="page-shell"><section class="search-section"><h2>新しいパスワード</h2><?php if($done): ?><p>パスワードを変更しました。</p><a href="member-login.php">ログイン</a><?php elseif(!$customerId): ?><p>リンクが無効か、有効期限が切れています。</p><?php else: ?><?php if($error): ?><p class="error-message"><?=h($error)?></p><?php endif; ?><form method="post" class="contact-form"><input type="hidden" name="csrf" value="<?=h(csrf_token())?>"><input type="hidden" name="token" value="<?=h($token)?>"><label>新しいパスワード<input type="password" name="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><label>確認入力<input type="password" name="password_confirm" minlength="8" maxlength="72" required autocomplete="new-password"></label><button>変更する</button></form><?php endif; ?></section></main></body></html>
