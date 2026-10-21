@@ -4,6 +4,8 @@
 
 The current local `sora` database has the full feature migration applied. For another existing installation, select the `sora` database in phpMyAdmin and import `databases/upgrade_full_features.sql`. The migration is repeatable and keeps existing records. Do not import the older one-time account migration.
 
+Property floor area, floor number, and initial-cost estimate are optional. Existing listings are left blank rather than assigned invented values; enter verified listing details in Admin so they can be displayed and matched by those filters.
+
 ## Production account and mail settings
 
 Set these environment variables in the PHP/Apache service before using this site publicly:

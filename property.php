@@ -35,6 +35,9 @@ $favoriteCsrf = $isCustomer ? csrf_token() : '';
     <?php if ($property['station']): ?><p><strong>最寄り駅：</strong><?= h($property['station']) ?></p><?php endif; ?>
     <?php if ($property['area']): ?><p><strong>地域：</strong><?= h($property['area']) ?></p><?php endif; ?>
     <p><strong>間取り：</strong><?= h($property['layout']) ?></p>
+    <?php if ($property['area_sqm'] !== null): ?><p><strong>専有面積：</strong><?= h($property['area_sqm']) ?>m²</p><?php endif; ?>
+    <?php if ($property['floor_number'] !== null): ?><p><strong>所在階：</strong><?= (int)$property['floor_number'] ?>階</p><?php endif; ?>
+    <?php if ($property['initial_cost'] !== null): ?><p><strong>初期費用の目安：</strong><?= number_format((int)$property['initial_cost']) ?>円</p><?php endif; ?>
     <p><strong>ペット：</strong><?= (int)$property['pet_allowed'] === 1 ? '相談可' : '不可' ?></p>
     <p class="price">家賃 <?= number_format((int)$property['rent']) ?>円</p>
     <p><strong>募集状況：</strong><?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中' ?> ・ 更新 <?= h(substr((string)$property['updated_at'],0,10)) ?></p>

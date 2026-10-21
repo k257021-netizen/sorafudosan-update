@@ -5,6 +5,12 @@ SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='layout')=0, 'ALTER TABLE properties ADD COLUMN layout varchar(20) NOT NULL DEFAULT ''1K'' AFTER pet_allowed', 'SELECT 1');
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='area_sqm')=0, 'ALTER TABLE properties ADD COLUMN area_sqm decimal(6,2) DEFAULT NULL AFTER layout', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='floor_number')=0, 'ALTER TABLE properties ADD COLUMN floor_number smallint DEFAULT NULL AFTER area_sqm', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='initial_cost')=0, 'ALTER TABLE properties ADD COLUMN initial_cost int(11) DEFAULT NULL AFTER floor_number', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='status')=0, 'ALTER TABLE properties ADD COLUMN status varchar(20) NOT NULL DEFAULT ''available'' AFTER layout', 'SELECT 1');
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='updated_at')=0, 'ALTER TABLE properties ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP', 'SELECT 1');

@@ -16,6 +16,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="home-page">
+    <a class="skip-link" href="#main-content">本文へ移動</a>
     <div class="page-shell">
         <header class="site-header">
             <a class="brand" href="index.php" aria-label="Sora Living ホーム">
@@ -42,9 +43,9 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
             </nav>
         </header>
 
-        <main>
+        <main id="main-content">
             <section class="hero" aria-labelledby="hero-title">
-                <p class="eyebrow"></p>
+                <p class="eyebrow">SORA LIVING ・ お部屋探し</p>
                 <h1 id="hero-title">新しい暮らしを、<br>ここから始めよう。</h1>
                 <p class="hero-copy">学校や駅、住みたい地域から、あなたにぴったりのお部屋を探せます。</p>
 
@@ -231,6 +232,10 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <option value="1">ペット可</option>
                         <option value="0">ペット不可</option>
                     </select>
+                    <label for="condition-area">専有面積の下限（m²）</label>
+                    <select id="condition-area" name="min_area"><option value="">指定なし</option><option value="20">20m²以上</option><option value="30">30m²以上</option><option value="40">40m²以上</option></select>
+                    <label for="condition-initial-cost">初期費用の上限</label>
+                    <select id="condition-initial-cost" name="max_initial_cost"><option value="">指定なし</option><option value="150000">150,000円まで</option><option value="250000">250,000円まで</option><option value="350000">350,000円まで</option></select>
                     <button type="submit" class="primary-button">物件を探す</button>
                 </form>
             </section>
@@ -283,7 +288,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <button type="button" class="fav-button" data-id="4" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[4]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                 </div>
-                <p class="featured-more"><a class="primary-button" href="search.php">すべての物件を見る</a></p>
+                <p class="featured-more"><a class="primary-button" href="search.php?browse=1">すべての物件を見る</a></p>
             </section>
         </main>
 

@@ -19,6 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = trim(input_string($_POST['description'] ?? ''));
         $rentInput = input_string($_POST['rent'] ?? '');
         $rent = filter_var($rentInput, FILTER_VALIDATE_INT);
+        $areaRaw = input_string($_POST['area_sqm'] ?? '');
+        $areaSqm = $areaRaw === '' ? null : filter_var($areaRaw, FILTER_VALIDATE_FLOAT);
+        $floorRaw = input_string($_POST['floor_number'] ?? '');
+        $floorNumber = $floorRaw === '' ? null : filter_var($floorRaw, FILTER_VALIDATE_INT);
+        $initialRaw = input_string($_POST['initial_cost'] ?? '');
+        $initialCost = $initialRaw === '' ? null : filter_var($initialRaw, FILTER_VALIDATE_INT);
         $layout = input_string($_POST['layout'] ?? '');
         $petAllowedInput = input_string($_POST['pet_allowed'] ?? '0');
         $petAllowed = $petAllowedInput === '1' ? 1 : 0;
@@ -28,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = '物件名を100文字以内で入力してください。';
         } elseif ($rent === false || $rent < 1) {
             $error = '家賃は1円以上の整数で入力してください。';
+        } elseif (($areaRaw !== '' && ($areaSqm === false || $areaSqm < 1 || $areaSqm > 9999)) || ($floorRaw !== '' && ($floorNumber === false || $floorNumber < 1 || $floorNumber > 200)) || ($initialRaw !== '' && ($initialCost === false || $initialCost < 0))) {
+            $error = '面積、階数、初期費用を正しく入力してください。';
         } elseif (!in_array($layout, $layouts, true) || !in_array($petAllowedInput, ['0', '1'], true)) {
             $error = '間取りとペット条件を選択してください。';
         } elseif (text_length($station) > 50 || text_length($area) > 50 || text_length($school) > 50) {
@@ -37,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($image !== null && str_starts_with($image, 'ERROR:')) {
                 $error = substr($image, 6);
             } else {
-                $stmt = $pdo->prepare('INSERT INTO properties (name, station, area, school, rent, pet_allowed, layout, description, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$name, $station, $area, $school, $rent, $petAllowed, $layout, $description, $image ?? 'images/property1.jpg', 'available']);
+                $stmt = $pdo->prepare('INSERT INTO properties (name, station, area, school, rent, pet_allowed, layout, area_sqm, floor_number, initial_cost, description, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([$name, $station, $area, $school, $rent, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $image ?? 'images/property1.jpg', 'available']);
                 header('Location: index.php');
                 exit;
             }
@@ -46,7 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$list = $pdo->query('SELECT * FROM properties ORDER BY id DESC')->fetchAll(PDO::FETCH_ASSOC);
+$filterStatus = input_string($_GET['status'] ?? 'all');
+if (!in_array($filterStatus, ['all','available','reserved','rented'], true)) $filterStatus = 'all';
+$listSql = 'SELECT * FROM properties' . ($filterStatus === 'all' ? '' : ' WHERE status = ?') . ' ORDER BY id DESC';
+$listStmt = $pdo->prepare($listSql);
+$listStmt->execute($filterStatus === 'all' ? [] : [$filterStatus]);
+$list = $listStmt->fetchAll(PDO::FETCH_ASSOC);
+$dashboard = [
+    'total_properties' => (int)$pdo->query('SELECT COUNT(*) FROM properties')->fetchColumn(),
+    'available' => (int)$pdo->query("SELECT COUNT(*) FROM properties WHERE status='available'")->fetchColumn(),
+    'unread_inquiries' => (int)$pdo->query('SELECT COUNT(*) FROM inquiries WHERE is_read=0')->fetchColumn(),
+];
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -62,6 +80,7 @@ $csrf = csrf_token();
   <nav class="admin-links" aria-label="管理メニュー">
     <a href="../index.php">サイトを見る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="../logout.php">ログアウト</a>
   </nav>
+  <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a></section>
 
   <section class="search-section">
     <h2>物件を追加</h2>
@@ -94,6 +113,7 @@ $csrf = csrf_token();
       <label>家賃（月額・円）
         <input type="number" name="rent" min="1" step="1" required value="<?= h(input_string($_POST['rent'] ?? '')) ?>">
       </label>
+      <div class="admin-fields-grid"><label>専有面積（m²・任意）<input type="number" name="area_sqm" min="1" max="9999" step="0.01" value="<?= h(input_string($_POST['area_sqm'] ?? '')) ?>"></label><label>所在階（任意）<input type="number" name="floor_number" min="1" max="200" step="1" value="<?= h(input_string($_POST['floor_number'] ?? '')) ?>"></label><label>初期費用の目安（円・任意）<input type="number" name="initial_cost" min="0" step="1000" value="<?= h(input_string($_POST['initial_cost'] ?? '')) ?>"></label></div>
       <label>間取り
         <select name="layout" class="form-control" required>
           <?php foreach (['1R', '1K', '1DK', '1LDK', '2DK', '2LDK', '3LDK'] as $option): ?>
@@ -118,14 +138,15 @@ $csrf = csrf_token();
   </section>
 
   <section class="search-section">
-    <h2>登録物件（<?= count($list) ?>件）</h2>
-    <?php if (!$list): ?><p class="empty-state">登録された物件はありません。</p><?php endif; ?>
+    <h2>登録物件（<?= count($list) ?>件<?= $filterStatus !== 'all' ? '・絞り込み中' : '' ?>）</h2>
+    <?php if (!$list): ?><p class="empty-state">条件に合う物件はありません。<a href="index.php">絞り込みを解除</a></p><?php endif; ?>
+    <form method="get" class="filter-row admin-filter"><label>募集状況<select name="status"><option value="all">すべて</option><option value="available" <?= input_string($_GET['status'] ?? '')==='available'?'selected':'' ?>>募集中</option><option value="reserved" <?= input_string($_GET['status'] ?? '')==='reserved'?'selected':'' ?>>申込あり</option><option value="rented" <?= input_string($_GET['status'] ?? '')==='rented'?'selected':'' ?>>契約済み</option></select></label><button>絞り込む</button><a href="index.php">解除</a></form>
     <?php foreach ($list as $property): ?>
       <div class="admin-property-row">
         <img src="../<?= h($property['image'] ?: 'images/property1.jpg') ?>" alt="">
         <strong><?= h($property['name']) ?></strong>
         <span>家賃 <?= number_format((int)$property['rent']) ?>円</span>
-        <span><?= h($property['layout']) ?>・ペット<?= (int)$property['pet_allowed'] === 1 ? '可' : '不可' ?>・<?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中' ?></span>
+        <span><?= h($property['layout']) ?>・ペット<?= (int)$property['pet_allowed'] === 1 ? '可' : '不可' ?>・<?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中' ?><?php if($property['area_sqm']): ?>・<?= h($property['area_sqm']) ?>m²<?php endif; ?></span>
         <a href="edit.php?id=<?= (int)$property['id'] ?>">編集</a>
         <form method="POST" onsubmit="return confirm('この物件を削除しますか？');">
           <input type="hidden" name="csrf" value="<?= h($csrf) ?>">

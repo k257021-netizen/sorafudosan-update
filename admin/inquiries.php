@@ -21,7 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-$list = $pdo->query('SELECT i.*, p.name AS property_name FROM inquiries i LEFT JOIN properties p ON p.id = i.property_id ORDER BY i.id DESC')->fetchAll(PDO::FETCH_ASSOC);
+$statusFilter = input_string($_GET['status'] ?? 'all');
+if (!in_array($statusFilter, ['all','new','in_progress','resolved'], true)) $statusFilter = 'all';
+$sql = 'SELECT i.*, p.name AS property_name FROM inquiries i LEFT JOIN properties p ON p.id = i.property_id' . ($statusFilter === 'all' ? '' : ' WHERE i.status=?') . ' ORDER BY i.id DESC';
+$stmt = $pdo->prepare($sql); $stmt->execute($statusFilter === 'all' ? [] : [$statusFilter]);
+$list = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$unreadCount = (int)$pdo->query('SELECT COUNT(*) FROM inquiries WHERE is_read=0')->fetchColumn();
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -37,6 +42,8 @@ $csrf = csrf_token();
   <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="../logout.php">ログアウト</a></p>
   <section class="search-section">
     <h2>お問い合わせ一覧（<?= count($list) ?>件）</h2>
+    <p class="admin-notice-count">未読：<strong><?= $unreadCount ?></strong> 件</p>
+    <form method="get" class="filter-row admin-filter"><label>対応状況<select name="status"><option value="all" <?=$statusFilter==='all'?'selected':''?>>すべて</option><option value="new" <?=$statusFilter==='new'?'selected':''?>>新着</option><option value="in_progress" <?=$statusFilter==='in_progress'?'selected':''?>>対応中</option><option value="resolved" <?=$statusFilter==='resolved'?'selected':''?>>完了</option></select></label><button>絞り込む</button><a href="inquiries.php">解除</a></form>
     <?php if (!$list): ?><p class="empty-state">お問い合わせはまだありません。</p><?php endif; ?>
 
     <?php foreach ($list as $inquiry): ?>
@@ -49,6 +56,7 @@ $csrf = csrf_token();
         </p>
         <?php if ($inquiry['property_name']): ?><p>対象物件：<?= h($inquiry['property_name']) ?></p><?php endif; ?>
         <p><?= nl2br(h($inquiry['message'])) ?></p>
+        <?php if (!empty($inquiry['admin_note'])): ?><p class="admin-note"><strong>管理メモ：</strong><?= nl2br(h($inquiry['admin_note'])) ?></p><?php endif; ?>
         <form method="POST" class="contact-form">
           <input type="hidden" name="csrf" value="<?= h($csrf) ?>"><input type="hidden" name="id" value="<?= (int)$inquiry['id'] ?>">
           <label>対応状況<select name="status"><option value="new" <?=$inquiry['status']==='new'?'selected':''?>>新着</option><option value="in_progress" <?=$inquiry['status']==='in_progress'?'selected':''?>>対応中</option><option value="resolved" <?=$inquiry['status']==='resolved'?'selected':''?>>完了</option></select></label>

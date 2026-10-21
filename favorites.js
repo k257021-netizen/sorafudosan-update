@@ -20,6 +20,7 @@ function paintButton(button, isFavorite) {
     button.dataset.favorite = isFavorite ? "1" : "0";
     button.textContent = isFavorite ? "♥ お気に入り登録済み" : "♡ お気に入りに追加";
     button.setAttribute("aria-pressed", isFavorite ? "true" : "false");
+    button.setAttribute("aria-label", isFavorite ? "お気に入りから削除" : "お気に入りに追加");
 }
 
 function removeFavoriteCard(button, favoritesPage, count) {

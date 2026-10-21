@@ -21,6 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $school = trim(input_string($_POST['school'] ?? ''));
         $description = trim(input_string($_POST['description'] ?? ''));
         $rent = filter_var(input_string($_POST['rent'] ?? ''), FILTER_VALIDATE_INT);
+        $areaRaw = input_string($_POST['area_sqm'] ?? '');
+        $areaSqm = $areaRaw === '' ? null : filter_var($areaRaw, FILTER_VALIDATE_FLOAT);
+        $floorRaw = input_string($_POST['floor_number'] ?? '');
+        $floorNumber = $floorRaw === '' ? null : filter_var($floorRaw, FILTER_VALIDATE_INT);
+        $initialRaw = input_string($_POST['initial_cost'] ?? '');
+        $initialCost = $initialRaw === '' ? null : filter_var($initialRaw, FILTER_VALIDATE_INT);
         $layout = input_string($_POST['layout'] ?? '');
         $petAllowedInput = input_string($_POST['pet_allowed'] ?? '0');
         $petAllowed = $petAllowedInput === '1' ? 1 : 0;
@@ -31,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = '物件名を100文字以内で入力してください。';
         } elseif ($rent === false || $rent < 1) {
             $error = '家賃は1円以上の整数で入力してください。';
+        } elseif (($areaRaw !== '' && ($areaSqm === false || $areaSqm < 1 || $areaSqm > 9999)) || ($floorRaw !== '' && ($floorNumber === false || $floorNumber < 1 || $floorNumber > 200)) || ($initialRaw !== '' && ($initialCost === false || $initialCost < 0))) {
+            $error = '面積、階数、初期費用を正しく入力してください。';
         } elseif (!in_array($layout, $layouts, true) || !in_array($petAllowedInput, ['0', '1'], true) || !in_array($status, ['available','reserved','rented'], true)) {
             $error = '間取りとペット条件を選択してください。';
         } elseif (text_length($station) > 50 || text_length($area) > 50 || text_length($school) > 50) {
@@ -40,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($image !== null && str_starts_with($image, 'ERROR:')) {
                 $error = substr($image, 6);
             } else {
-                $stmt = $pdo->prepare('UPDATE properties SET name=?, station=?, area=?, school=?, rent=?, pet_allowed=?, layout=?, description=?, image=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?');
-                $stmt->execute([$name, $station, $area, $school, $rent, $petAllowed, $layout, $description, $image ?? $property['image'], $status, $id]);
+                $stmt = $pdo->prepare('UPDATE properties SET name=?, station=?, area=?, school=?, rent=?, pet_allowed=?, layout=?, area_sqm=?, floor_number=?, initial_cost=?, description=?, image=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?');
+                $stmt->execute([$name, $station, $area, $school, $rent, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $image ?? $property['image'], $status, $id]);
                 header('Location: index.php');
                 exit;
             }
@@ -57,6 +65,9 @@ $currentRent = input_string($_POST['rent'] ?? $property['rent']);
 $currentLayout = input_string($_POST['layout'] ?? $property['layout']);
 $currentPetAllowed = input_string($_POST['pet_allowed'] ?? (string)$property['pet_allowed']);
 $currentDescription = input_string($_POST['description'] ?? $property['description']);
+$currentAreaSqm = input_string($_POST['area_sqm'] ?? $property['area_sqm']);
+$currentFloor = input_string($_POST['floor_number'] ?? $property['floor_number']);
+$currentInitialCost = input_string($_POST['initial_cost'] ?? $property['initial_cost']);
 $currentStatus = input_string($_POST['status'] ?? $property['status']);
 $schools = [
     '' => '指定なし',
@@ -122,6 +133,7 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
         </select>
       </label>
       <label>募集状況<select name="status" class="form-control"><option value="available" <?=$currentStatus==='available'?'selected':''?>>募集中</option><option value="reserved" <?=$currentStatus==='reserved'?'selected':''?>>申込あり</option><option value="rented" <?=$currentStatus==='rented'?'selected':''?>>契約済み</option></select></label>
+      <div class="admin-fields-grid"><label>専有面積（m²・任意）<input type="number" name="area_sqm" min="1" max="9999" step="0.01" value="<?=h($currentAreaSqm)?>"></label><label>所在階（任意）<input type="number" name="floor_number" min="1" max="200" value="<?=h($currentFloor)?>"></label><label>初期費用の目安（円・任意）<input type="number" name="initial_cost" min="0" step="1000" value="<?=h($currentInitialCost)?>"></label></div>
       <label>現在の写真
         <img src="../<?= h($property['image'] ?: 'images/property1.jpg') ?>" alt="<?= h($property['name']) ?>の現在の写真" style="display:block;width:min(100%,360px);max-height:240px;object-fit:cover;border-radius:12px;margin-top:8px;">
       </label>
