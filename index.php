@@ -207,6 +207,11 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <option value="60000">60,000円まで</option>
                         <option value="70000">70,000円まで</option>
                         <option value="80000">80,000円まで</option>
+                        <option value="50000 ~ 60000">50,000円 ~ 60,000円</option>
+                        <option value="60000 ~ 70000">60,000円 ~ 70,000円</option>
+                        <option value="70000 ~ 80000">70,000円 ~ 80,000円</option>
+                        <option value="50000 ~ 80000">50,000円 ~ 80,000円</option>
+
                     </select>
                     <label for="condition-station">最寄り駅</label>
                     <select id="condition-station" name="station">
@@ -255,6 +260,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <p class="sample-badge">架空のサンプル</p>
                         <p>最寄り駅：横浜駅</p><p>横浜市</p><p>間取り：1K ・ ペット不可</p>
                         <p class="price">家賃 60,000円</p>
+                        <p>横浜駅　歩　5分</p>
                         <button type="button" class="fav-button" data-id="1" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[1]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                     <article class="property-card">
@@ -265,6 +271,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <p class="sample-badge">架空のサンプル</p>
                         <p>最寄り駅：桜木町駅</p><p>横浜市</p><p>間取り：1R ・ ペット不可</p>
                         <p class="price">家賃 55,000円</p>
+                        <p>桜木町　歩　8分</a>
                         <button type="button" class="fav-button" data-id="2" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[2]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                     <article class="property-card">
@@ -275,6 +282,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <p class="sample-badge">架空のサンプル</p>
                         <p>最寄り駅：川崎駅</p><p>川崎市</p><p>間取り：1K ・ ペット不可</p>
                         <p class="price">家賃 65,000円</p>
+                        <p>川崎駅　歩　5分</p>
                         <button type="button" class="fav-button" data-id="3" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[3]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                     <article class="property-card">
@@ -285,6 +293,7 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <p class="sample-badge">架空のサンプル</p>
                         <p>最寄り駅：川崎駅</p><p>川崎市</p><p>間取り：1K ・ ペット不可</p>
                         <p class="price">家賃 80,000円</p>
+                        <p>川崎駅　歩　4分</p>
                         <button type="button" class="fav-button" data-id="4" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[4]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                 </div>
