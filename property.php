@@ -7,8 +7,9 @@ if (!$id || $id < 1) {
     exit('物件が見つかりませんでした。');
 }
 
-$stmt = $pdo->prepare('SELECT * FROM properties WHERE id = :id');
-$stmt->execute([':id' => $id]);
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$stmt = $pdo->prepare('SELECT * FROM properties WHERE id = ? AND area IN (' . implode(',', array_fill(0, count($serviceAreas), '?')) . ')');
+$stmt->execute(array_merge([$id], $serviceAreas));
 $property = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$property) {
     http_response_code(404);

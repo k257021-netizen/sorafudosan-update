@@ -3,6 +3,15 @@ require 'db.php';
 
 $where = [];
 $params = [];
+// Keep every result inside the service area, including unfiltered browse requests.
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$areaPlaceholders = [];
+foreach ($serviceAreas as $index => $serviceArea) {
+    $placeholder = ':service_area_' . $index;
+    $areaPlaceholders[] = $placeholder;
+    $params[$placeholder] = $serviceArea;
+}
+$where[] = 'area IN (' . implode(', ', $areaPlaceholders) . ')';
 $query = trim(input_string($_GET['q'] ?? ''));
 $query = function_exists('mb_substr') ? mb_substr($query, 0, 100, 'UTF-8') : substr($query, 0, 100);
 
@@ -13,14 +22,14 @@ if ($query !== '') {
 }
 
 $station = trim(input_string($_GET['station'] ?? ''));
-$stations = ['横浜駅', '新横浜駅', '菊名駅', '日吉駅', '鶴見駅', '桜木町駅', '関内駅', '石川町駅', '戸塚駅', '金沢八景駅', '白楽駅', '和田町駅', '川崎駅', '京急川崎駅', '武蔵小杉駅', '溝の口駅', '武蔵溝ノ口駅', '登戸駅', '向ヶ丘遊園駅', '新百合ヶ丘駅', '鎌倉駅', '藤沢駅', '逗子駅', '横須賀中央駅', '大和駅', '町田駅', '蒲田駅', '品川駅'];
+$stations = ['横浜駅', '新横浜駅', '菊名駅', '日吉駅', '鶴見駅', '桜木町駅', '関内駅', '石川町駅', '戸塚駅', '金沢八景駅', '白楽駅', '和田町駅', '川崎駅', '京急川崎駅', '武蔵小杉駅', '溝の口駅', '武蔵溝ノ口駅', '登戸駅', '向ヶ丘遊園駅', '新百合ヶ丘駅'];
 if (in_array($station, $stations, true)) {
     $where[] = 'station = :station';
     $params[':station'] = $station;
 }
 
 $area = trim(input_string($_GET['area'] ?? ''));
-$areas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '鎌倉市', '藤沢市', '逗子市', '横須賀市', '大和市', '町田市', '大田区', '品川区', '横浜市', '川崎市'];
+$areas = $serviceAreas;
 if (in_array($area, $areas, true)) {
     $where[] = 'area = :area';
     $params[':area'] = $area;
@@ -61,7 +70,7 @@ if ($maxInitial !== '' && filter_var($maxInitial, FILTER_VALIDATE_INT) !== false
     $where[] = 'initial_cost <= :max_initial_cost'; $params[':max_initial_cost'] = (int)$maxInitial;
 }
 
-$searchPrompt = !$where && input_string($_GET['browse'] ?? '') !== '1';
+$searchPrompt = count($where) === 1 && input_string($_GET['browse'] ?? '') !== '1';
 $status = input_string($_GET['status'] ?? 'available');
 if (!in_array($status, ['available', 'reserved', 'rented', 'all'], true)) $status = 'available';
 if ($status !== 'all') { $where[] = 'status = :status'; $params[':status'] = $status; }

@@ -2,19 +2,21 @@
 require 'db.php';
 
 $list = [];
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$areaPlaceholders = implode(',', array_fill(0, count($serviceAreas), '?'));
 $isCustomer = !empty($_SESSION['customer_id']);
 $csrf = csrf_token();
 if ($isCustomer) {
-    $stmt = $pdo->prepare('SELECT p.id, p.name, p.station, p.area, p.rent, p.image, p.description, p.pet_allowed, p.layout, p.area_sqm, p.floor_number, p.initial_cost, p.status, p.updated_at FROM customer_favorites f JOIN properties p ON p.id = f.property_id WHERE f.customer_id = ? ORDER BY f.created_at DESC');
-    $stmt->execute([(int)$_SESSION['customer_id']]);
+    $stmt = $pdo->prepare('SELECT p.id, p.name, p.station, p.area, p.rent, p.image, p.description, p.pet_allowed, p.layout, p.area_sqm, p.floor_number, p.initial_cost, p.status, p.updated_at FROM customer_favorites f JOIN properties p ON p.id = f.property_id WHERE f.customer_id = ? AND p.area IN (' . $areaPlaceholders . ') ORDER BY f.created_at DESC');
+    $stmt->execute(array_merge([(int)$_SESSION['customer_id']], $serviceAreas));
     $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $rawIds = array_map('intval', explode(',', (string)($_COOKIE['favorites'] ?? '')));
     $ids = array_slice(array_values(array_unique(array_filter($rawIds, static fn($id) => $id > 0))), 0, 100);
     if ($ids) {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $pdo->prepare("SELECT id, name, station, area, rent, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties WHERE id IN ($placeholders) ORDER BY rent ASC");
-        $stmt->execute($ids);
+        $stmt = $pdo->prepare("SELECT id, name, station, area, rent, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties WHERE id IN ($placeholders) AND area IN ($areaPlaceholders) ORDER BY rent ASC");
+        $stmt->execute(array_merge($ids, $serviceAreas));
         $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
