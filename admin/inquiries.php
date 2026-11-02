@@ -49,7 +49,7 @@ $csrf = csrf_token();
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
-  <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="../logout.php">ログアウト</a></p>
+  <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="documents.php">規約・ポリシー編集</a> ・ <a href="../logout.php">ログアウト</a></p>
   <section class="search-section">
     <h2>お問い合わせ一覧（<?= count($list) ?>件）</h2>
     <p class="admin-notice-count">未読：<strong><?= $unreadCount ?></strong> 件 ・ 24時間以上未完了：<strong><?= $overdueCount ?></strong> 件</p>

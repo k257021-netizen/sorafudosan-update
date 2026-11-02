@@ -113,7 +113,7 @@ $csrf = csrf_token();
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
   <nav class="admin-links" aria-label="管理メニュー">
-    <a href="../index.php">サイトを見る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="../logout.php">ログアウト</a>
+    <a href="../index.php">サイトを見る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="documents.php">規約・ポリシー編集</a> ・ <a href="../logout.php">ログアウト</a>
   </nav>
   <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="index.php?stale=1"><strong><?= $dashboard['stale_properties'] ?></strong><span>30日以上未確認</span></a><a href="inquiries.php?status=overdue"><strong><?= $dashboard['overdue_inquiries'] ?></strong><span>24時間以上未完了</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a></section>
 

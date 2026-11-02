@@ -1,2 +1,24 @@
-<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>プライバシーポリシー | Sora Living</title><link rel="stylesheet" href="style.css?v=20261102-7"><body>
-<?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?><main class="page-shell"><section class="search-section"><h1>プライバシーポリシー</h1><p>Sora Living（以下「当サイト」）は、アカウント登録、お気に入り保存、お問い合わせ対応のために、氏名、メールアドレス、電話番号、お問い合わせ内容を取得します。</p><h2>利用目的</h2><p>物件探し機能の提供、本人確認、問い合わせへの回答、サービス改善および不正利用防止に利用します。アカウントのセキュリティを守るため、パスワード変更の日時、接続元IPアドレス、ブラウザー情報を記録し、セキュリティ記録は作成から180日後に削除します。パスワードを変更または再設定した場合、登録メールアドレスに通知します。</p><h2>第三者提供・保管</h2><p>法令に基づく場合を除き、本人の同意なく個人情報を第三者へ提供しません。利用目的に必要な期間、安全管理に配慮して保管し、不要になった情報は適切に削除します。</p><h2>お問い合わせ・開示請求</h2><p>個人情報に関する相談や開示・訂正・削除の希望は、サイトのお問い合わせフォームからご連絡ください。</p><p>制定日：2026年11月2日</p><a href="index.php">トップページへ戻る</a></section></main></body></html>
+<?php
+require 'db.php';
+require 'includes/site-documents.php';
+$document = site_document($pdo, 'privacy');
+?>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>プライバシーポリシー | Sora Living</title>
+  <link rel="stylesheet" href="style.css?v=20261102-7">
+</head>
+<body>
+<?php include __DIR__ . '/includes/site-brand.php'; ?>
+<main class="page-shell">
+  <section class="search-section">
+    <h1>プライバシーポリシー</h1>
+    <?= render_site_document($document['content']) ?>
+    <a href="index.php">トップページへ戻る</a>
+  </section>
+</main>
+</body>
+</html>

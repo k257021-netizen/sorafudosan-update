@@ -116,7 +116,7 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
-  <p><a href="index.php">← 物件管理へ戻る</a></p>
+  <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="documents.php">規約・ポリシー編集</a></p>
   <section class="search-section">
     <h2>物件を編集</h2>
     <?php if ($error): ?><p class="error-message" role="alert"><?= h($error) ?></p><?php endif; ?>
