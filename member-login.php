@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $limit = $pdo->prepare('SELECT COUNT(*) FROM auth_login_attempts WHERE rate_key=? AND attempted_at > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 15 MINUTE)');
         $limit->execute([$rateKey]);
         $blocked = (int)$limit->fetchColumn() >= 5;
-        $stmt = $pdo->prepare('SELECT id, name, password_hash, email_verified_at FROM customers WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, name, password_hash, email_verified_at, password_version FROM customers WHERE email = ?');
         $stmt->execute([$email]);
         $customer = $blocked ? false : $stmt->fetch(PDO::FETCH_ASSOC);
         if ($customer && password_verify(input_string($_POST['password'] ?? ''), $customer['password_hash'])) {
@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 session_regenerate_id(true);
                 $_SESSION['customer_id'] = (int)$customer['id'];
                 $_SESSION['customer_name'] = $customer['name'];
+                $_SESSION['customer_password_version'] = (int)$customer['password_version'];
                 sync_cookie_favorites($pdo, (int)$customer['id']);
                 header('Location: index.php');
                 exit;

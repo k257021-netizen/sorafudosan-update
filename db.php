@@ -21,6 +21,16 @@ $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser,
     PDO::ATTR_EMULATE_PREPARES => false,
 ]);
 
+if (!empty($_SESSION['customer_id'])) {
+    $stmt = $pdo->prepare('SELECT password_version FROM customers WHERE id = ?');
+    $stmt->execute([(int)$_SESSION['customer_id']]);
+    $passwordVersion = $stmt->fetchColumn();
+    if ($passwordVersion === false || !isset($_SESSION['customer_password_version']) || (int)$_SESSION['customer_password_version'] !== (int)$passwordVersion) {
+        unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_password_version']);
+        session_regenerate_id(true);
+    }
+}
+
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 function input_string($value): string {
@@ -31,6 +41,18 @@ function text_length(string $value): int {
     if (function_exists('mb_strlen')) return mb_strlen($value, 'UTF-8');
     $length = preg_match_all('/./us', $value, $matches);
     return $length === false ? strlen($value) : $length;
+}
+
+function valid_password_length(string $password): bool {
+    return text_length($password) >= 8 && strlen($password) <= 72;
+}
+
+function log_customer_security_event(PDO $pdo, int $customerId, string $event): void {
+    $ipAddress = filter_var($_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP);
+    $rawUserAgent = input_string($_SERVER['HTTP_USER_AGENT'] ?? '');
+    $userAgent = preg_match('/^.{0,255}/us', $rawUserAgent, $matches) === 1 ? $matches[0] : '';
+    $stmt = $pdo->prepare('INSERT INTO auth_security_events (customer_id, event_type, ip_address, user_agent) VALUES (?, ?, ?, ?)');
+    $stmt->execute([$customerId, $event, $ipAddress ?: null, $userAgent ?: null]);
 }
 
 function csrf_token(): string {

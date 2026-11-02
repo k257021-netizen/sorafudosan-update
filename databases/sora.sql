@@ -149,6 +149,7 @@ CREATE TABLE `customers` (
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `password_version` int(10) unsigned NOT NULL DEFAULT 0,
   `email_verified_at` datetime DEFAULT NULL,
   `terms_accepted_at` datetime DEFAULT NULL,
   `privacy_accepted_at` datetime DEFAULT NULL,
@@ -187,6 +188,19 @@ CREATE TABLE `auth_login_attempts` (
   `attempted_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `rate_key_attempted_at` (`rate_key`, `attempted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `auth_security_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `customer_id` int(11) NOT NULL,
+  `event_type` varchar(40) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `customer_event_created` (`customer_id`, `event_type`, `created_at`),
+  KEY `created_at` (`created_at`),
+  CONSTRAINT `auth_security_events_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 COMMIT;

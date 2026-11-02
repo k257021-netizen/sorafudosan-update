@@ -10,7 +10,7 @@ $stmt = $pdo->prepare('SELECT name, email FROM customers WHERE id = ?');
 $stmt->execute([(int)$_SESSION['customer_id']]);
 $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$customer) {
-    unset($_SESSION['customer_id'], $_SESSION['customer_name']);
+    unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['customer_password_version']);
     header('Location: member-login.php');
     exit;
 }

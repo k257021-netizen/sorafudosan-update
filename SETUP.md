@@ -2,7 +2,7 @@
 
 ## Local database upgrade
 
-The current local `sora` database has the full feature migration applied. For another existing installation, select the `sora` database in phpMyAdmin and import `databases/upgrade_full_features.sql`. The migration is repeatable and keeps existing records. Do not import the older one-time account migration.
+The current local `sora` database has the full-feature and password-security migrations applied. For another existing installation, select the `sora` database in phpMyAdmin and import `databases/upgrade_full_features.sql`, then `databases/upgrade_password_security.sql`. Both migrations are repeatable and keep existing records. Existing customer sessions will need to sign in again after this migration. Do not import the older one-time account migration.
 
 Property floor area, floor number, and initial-cost estimate are optional. Existing listings are left blank rather than assigned invented values; enter verified listing details in Admin so they can be displayed and matched by those filters.
 
@@ -22,4 +22,4 @@ The default environment is `development` for the local XAMPP workspace: signup v
 
 ## Included account and inquiry features
 
-Registered favorites, email verification, password reset and change, login attempt throttling, inquiry status and internal notes, property availability status, search sorting and pagination, and terms/privacy consent are available after migration. Terms and privacy pages are starter policy text and should be reviewed for the operator's actual business and jurisdiction before public launch.
+Registered favorites, email verification, password reset and change, login attempt throttling, inquiry status and internal notes, property availability status, search sorting and pagination, and terms/privacy consent are available after migration. Password changes notify the account email address and invalidate other sessions. Security events retain the event type, IP address, and browser user-agent for 180 days. Schedule `C:\xampp\php\php.exe C:\xampp\htdocs\sorafudosan-update\cleanup-security-events.php` to run daily in Windows Task Scheduler (or cron on Linux) to remove expired security events and login attempts. The privacy policy should be reviewed for the operator's actual business and jurisdiction before public launch.

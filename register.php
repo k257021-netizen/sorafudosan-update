@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'お名前を100文字以内で入力してください。';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 150) {
         $error = '有効なメールアドレスを入力してください。';
-    } elseif (strlen($password) < 8 || strlen($password) > 72) {
-        $error = 'パスワードは8〜72文字で入力してください。';
+    } elseif (!valid_password_length($password)) {
+        $error = 'パスワードは8文字以上、UTF-8で72バイト以内で入力してください。';
     } elseif ($password !== $passwordConfirm) {
         $error = '確認用パスワードが一致しません。';
     } else {
@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     session_regenerate_id(true);
                     $_SESSION['customer_id'] = $customerId;
                     $_SESSION['customer_name'] = $name;
+                    $_SESSION['customer_password_version'] = 0;
                     sync_cookie_favorites($pdo, $customerId);
                     header('Location: account.php');
                     exit;
@@ -83,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>新規登録</h2>
     <p class="account-intro">お気に入りのお部屋探しに使うアカウントを作成します。</p>
     <?php if ($error): ?><p class="error-message" role="alert"><?= h($error) ?></p><?php endif; ?>
-    <form method="POST" class="contact-form">
+    <form method="POST" class="contact-form" data-password-form>
       <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
       <label>お名前
         <input type="text" name="name" value="<?= h($name) ?>" required maxlength="100" autocomplete="name">
@@ -91,11 +92,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label>メールアドレス
         <input type="email" name="email" value="<?= h($email) ?>" required maxlength="150" autocomplete="email">
       </label>
-      <label>パスワード（8〜72文字）
-        <input type="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password">
-      </label>
-      <label>パスワード（確認）
-        <input type="password" name="password_confirm" required minlength="8" maxlength="72" autocomplete="new-password">
+      <p id="register-password-requirements">8文字以上。UTF-8で72バイト以内（半角英数字の場合は最大72文字）で入力してください。</p>
+      <label for="register_password">パスワード</label>
+      <div class="password-field">
+        <input id="register_password" type="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password" aria-describedby="register-password-requirements register-password-strength-text">
+        <button class="password-toggle" type="button" aria-controls="register_password" aria-pressed="false">表示</button>
+      </div>
+      <meter data-password-strength class="password-strength" min="0" max="4" value="0" aria-label="パスワード強度の目安"></meter>
+      <p id="register-password-strength-text" data-password-strength-text class="password-hint" aria-live="polite">パスワードを入力してください。</p>
+      <label for="register_password_confirm">パスワード（確認）</label>
+      <div class="password-field">
+        <input id="register_password_confirm" type="password" name="password_confirm" required minlength="8" maxlength="72" autocomplete="new-password" aria-describedby="register_password_match">
+        <button class="password-toggle" type="button" aria-controls="register_password_confirm" aria-pressed="false">表示</button>
+      </div>
+      <p id="register_password_match" class="password-hint" data-password-match aria-live="polite"></p>
       </label>
       <label class="consent-check"><input type="checkbox" name="accept_terms" value="1" required> <a href="terms.php" target="_blank">利用規約</a>と<a href="privacy.php" target="_blank">プライバシーポリシー</a>に同意します</label>
       <button type="submit">アカウントを作成</button>
@@ -103,5 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p class="account-switch">登録済みの方は<a href="member-login.php">ログイン</a></p>
   </section>
 </div>
+<script src="password-form.js" defer></script>
 </body>
 </html>
