@@ -15,5 +15,5 @@ if (preg_match('/^[a-f0-9]{64}$/', $token)) {
     }
 }
 ?>
-<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>メール確認 | Sora Living</title><link rel="stylesheet" href="style.css"><body>
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>メール確認 | Sora Living</title><link rel="stylesheet" href="style.css?v=20261102-6"><body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?><main class="page-shell"><section class="search-section"><h2>メールアドレス確認</h2><p><?= h($message) ?></p><a href="member-login.php">ログインへ</a></section></main></body></html>

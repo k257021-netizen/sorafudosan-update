@@ -18,7 +18,7 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="theme-color" content="#f5f7fb">
     <meta name="description" content="横浜・川崎エリアの賃貸・売買物件探しを、Sora Livingがお手伝いします。学校や駅、価格の条件から物件を検索できます。">
     <title>住まい探し | Sora Living</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261102-7">
 </head>
 <body class="home-page">
     <a class="skip-link" href="#main-content">本文へ移動</a>

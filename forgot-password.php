@@ -14,5 +14,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid($_POST['csrf'] ?? '')) {
     $done=true;
 }
 ?>
-<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>パスワード再設定 | Sora Living</title><link rel="stylesheet" href="style.css"><body>
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>パスワード再設定 | Sora Living</title><link rel="stylesheet" href="style.css?v=20261102-7"><body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?><main class="page-shell"><section class="search-section"><h2>パスワード再設定</h2><?php if($done): ?><p>該当するアカウントがある場合、再設定リンクを送信しました。</p><?php if($devLink): ?><p>開発用リンク: <a href="<?= h($devLink) ?>">パスワードを再設定</a></p><?php endif; ?><?php else: ?><form method="post" class="contact-form"><input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>"><label>登録メールアドレス<input type="email" name="email" required></label><button>再設定リンクを送る</button></form><?php endif; ?><a href="member-login.php">ログインへ戻る</a></section></main></body></html>

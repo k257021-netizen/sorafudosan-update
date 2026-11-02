@@ -12,6 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare('DELETE FROM properties WHERE id = ?')->execute([(int)$_POST['delete']]);
         header('Location: index.php');
         exit;
+    } elseif (isset($_POST['confirm_current'])) {
+        $id = filter_var(input_string($_POST['confirm_current']), FILTER_VALIDATE_INT);
+        if ($id === false || $id < 1) {
+            $error = '確認する物件を選択してください。';
+        } else {
+            $pdo->prepare("UPDATE properties SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('available', 'reserved')")->execute([$id]);
+            header('Location: index.php?stale=1');
+            exit;
+        }
     } else {
         $name = trim(input_string($_POST['name'] ?? ''));
         $station = trim(input_string($_POST['station'] ?? ''));
@@ -72,7 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $filterStatus = input_string($_GET['status'] ?? 'all');
 if (!in_array($filterStatus, ['all','available','reserved','rented'], true)) $filterStatus = 'all';
-$listSql = 'SELECT * FROM properties WHERE area IN (' . implode(',', array_fill(0, count($serviceAreas), '?')) . ')' . ($filterStatus === 'all' ? '' : ' AND status = ?') . ' ORDER BY id DESC';
+$staleOnly = input_string($_GET['stale'] ?? '') === '1';
+$listSql = "SELECT *, (status IN ('available', 'reserved') AND updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 DAY)) AS needs_review FROM properties WHERE area IN (" . implode(',', array_fill(0, count($serviceAreas), '?')) . ')' . ($filterStatus === 'all' ? '' : ' AND status = ?') . ($staleOnly ? " AND status IN ('available', 'reserved') AND updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 DAY)" : '') . ' ORDER BY id DESC';
 $listStmt = $pdo->prepare($listSql);
 $listStmt->execute($filterStatus === 'all' ? $serviceAreas : array_merge($serviceAreas, [$filterStatus]));
 $list = $listStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -80,9 +90,13 @@ $areaPlaceholders = implode(',', array_fill(0, count($serviceAreas), '?'));
 $dashboardStmt = $pdo->prepare('SELECT COUNT(*), SUM(status = \'available\') FROM properties WHERE area IN (' . $areaPlaceholders . ')');
 $dashboardStmt->execute($serviceAreas);
 $dashboardCounts = $dashboardStmt->fetch(PDO::FETCH_NUM);
+$staleStmt = $pdo->prepare("SELECT COUNT(*) FROM properties WHERE area IN (" . $areaPlaceholders . ") AND status IN ('available', 'reserved') AND updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 DAY)");
+$staleStmt->execute($serviceAreas);
 $dashboard = [
     'total_properties' => (int)$dashboardCounts[0],
     'available' => (int)$dashboardCounts[1],
+    'stale_properties' => (int)$staleStmt->fetchColumn(),
+    'overdue_inquiries' => (int)$pdo->query("SELECT COUNT(*) FROM inquiries WHERE status IN ('new', 'in_progress') AND created_at <= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)")->fetchColumn(),
     'unread_inquiries' => (int)$pdo->query('SELECT COUNT(*) FROM inquiries WHERE is_read=0')->fetchColumn(),
 ];
 $csrf = csrf_token();
@@ -93,7 +107,7 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>物件管理 | Sora Living</title>
-  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../style.css?v=20261102-7">
 </head>
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
@@ -101,7 +115,7 @@ $csrf = csrf_token();
   <nav class="admin-links" aria-label="管理メニュー">
     <a href="../index.php">サイトを見る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="../logout.php">ログアウト</a>
   </nav>
-  <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a></section>
+  <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="index.php?stale=1"><strong><?= $dashboard['stale_properties'] ?></strong><span>30日以上未確認</span></a><a href="inquiries.php?status=overdue"><strong><?= $dashboard['overdue_inquiries'] ?></strong><span>24時間以上未完了</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a></section>
 
   <section class="search-section">
     <h2>物件を追加</h2>
@@ -162,13 +176,21 @@ $csrf = csrf_token();
   <section class="search-section">
     <h2>登録物件（<?= count($list) ?>件<?= $filterStatus !== 'all' ? '・絞り込み中' : '' ?>）</h2>
     <?php if (!$list): ?><p class="empty-state">条件に合う物件はありません。<a href="index.php">絞り込みを解除</a></p><?php endif; ?>
-    <form method="get" class="filter-row admin-filter"><label>募集状況<select name="status"><option value="all">すべて</option><option value="available" <?= input_string($_GET['status'] ?? '')==='available'?'selected':'' ?>>募集中</option><option value="reserved" <?= input_string($_GET['status'] ?? '')==='reserved'?'selected':'' ?>>申込あり</option><option value="rented" <?= input_string($_GET['status'] ?? '')==='rented'?'selected':'' ?>>契約済み</option></select></label><button>絞り込む</button><a href="index.php">解除</a></form>
+    <form method="get" class="filter-row admin-filter"><label>募集状況<select name="status"><option value="all">すべて</option><option value="available" <?= $filterStatus==='available'?'selected':'' ?>>募集中</option><option value="reserved" <?= $filterStatus==='reserved'?'selected':'' ?>>申込あり</option><option value="rented" <?= $filterStatus==='rented'?'selected':'' ?>>契約済み</option></select></label><label><input type="checkbox" name="stale" value="1" <?= $staleOnly?'checked':'' ?>> 30日以上未確認のみ</label><button>絞り込む</button><a href="index.php">解除</a></form>
     <?php foreach ($list as $property): ?>
       <div class="admin-property-row">
         <img src="../<?= h($property['image'] ?: 'images/property1.jpg') ?>" alt="">
         <strong><?= h($property['name']) ?></strong>
         <span><?= $property['transaction_type'] === 'sale' ? '販売価格' : '家賃（月額）' ?> <?= number_format((int)($property['sale_price'] ?? $property['rent'] ?? 0)) ?>円</span>
         <span><?= h($property['layout']) ?>・ペット<?= (int)$property['pet_allowed'] === 1 ? '可' : '不可' ?>・<?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中' ?><?php if($property['area_sqm']): ?>・<?= h($property['area_sqm']) ?>m²<?php endif; ?></span>
+        <span>最終更新：<?= h($property['updated_at']) ?></span>
+        <?php if ((int)$property['needs_review'] === 1): ?>
+          <strong class="review-needed">30日以上未確認</strong>
+          <form method="POST">
+            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+            <button type="submit" name="confirm_current" value="<?= (int)$property['id'] ?>">内容を確認済みにする</button>
+          </form>
+        <?php endif; ?>
         <a href="edit.php?id=<?= (int)$property['id'] ?>">編集</a>
         <form method="POST" onsubmit="return confirm('この物件を削除しますか？');">
           <input type="hidden" name="csrf" value="<?= h($csrf) ?>">

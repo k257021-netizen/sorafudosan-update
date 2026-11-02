@@ -22,11 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $statusFilter = input_string($_GET['status'] ?? 'all');
-if (!in_array($statusFilter, ['all','new','in_progress','resolved'], true)) $statusFilter = 'all';
-$sql = 'SELECT i.*, p.name AS property_name FROM inquiries i LEFT JOIN properties p ON p.id = i.property_id' . ($statusFilter === 'all' ? '' : ' WHERE i.status=?') . ' ORDER BY i.id DESC';
-$stmt = $pdo->prepare($sql); $stmt->execute($statusFilter === 'all' ? [] : [$statusFilter]);
+if (!in_array($statusFilter, ['all','new','in_progress','resolved','overdue'], true)) $statusFilter = 'all';
+$overdueCondition = "i.status IN ('new', 'in_progress') AND i.created_at <= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)";
+$sql = 'SELECT i.*, p.name AS property_name, CASE WHEN ' . $overdueCondition . ' THEN 1 ELSE 0 END AS is_overdue FROM inquiries i LEFT JOIN properties p ON p.id = i.property_id';
+if ($statusFilter === 'overdue') {
+    $sql .= ' WHERE ' . $overdueCondition;
+} elseif ($statusFilter !== 'all') {
+    $sql .= ' WHERE i.status=?';
+}
+$sql .= ' ORDER BY i.id DESC';
+$stmt = $pdo->prepare($sql);
+$stmt->execute($statusFilter !== 'all' && $statusFilter !== 'overdue' ? [$statusFilter] : []);
 $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $unreadCount = (int)$pdo->query('SELECT COUNT(*) FROM inquiries WHERE is_read=0')->fetchColumn();
+$overdueCount = (int)$pdo->query("SELECT COUNT(*) FROM inquiries WHERE status IN ('new', 'in_progress') AND created_at <= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)")->fetchColumn();
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -35,7 +44,7 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お問い合わせ一覧 | Sora Living</title>
-  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../style.css?v=20261102-7">
 </head>
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
@@ -43,12 +52,13 @@ $csrf = csrf_token();
   <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="../logout.php">ログアウト</a></p>
   <section class="search-section">
     <h2>お問い合わせ一覧（<?= count($list) ?>件）</h2>
-    <p class="admin-notice-count">未読：<strong><?= $unreadCount ?></strong> 件</p>
-    <form method="get" class="filter-row admin-filter"><label>対応状況<select name="status"><option value="all" <?=$statusFilter==='all'?'selected':''?>>すべて</option><option value="new" <?=$statusFilter==='new'?'selected':''?>>新着</option><option value="in_progress" <?=$statusFilter==='in_progress'?'selected':''?>>対応中</option><option value="resolved" <?=$statusFilter==='resolved'?'selected':''?>>完了</option></select></label><button>絞り込む</button><a href="inquiries.php">解除</a></form>
+    <p class="admin-notice-count">未読：<strong><?= $unreadCount ?></strong> 件 ・ 24時間以上未完了：<strong><?= $overdueCount ?></strong> 件</p>
+    <form method="get" class="filter-row admin-filter"><label>対応状況<select name="status"><option value="all" <?=$statusFilter==='all'?'selected':''?>>すべて</option><option value="new" <?=$statusFilter==='new'?'selected':''?>>新着</option><option value="in_progress" <?=$statusFilter==='in_progress'?'selected':''?>>対応中</option><option value="resolved" <?=$statusFilter==='resolved'?'selected':''?>>完了</option><option value="overdue" <?=$statusFilter==='overdue'?'selected':''?>>24時間以上未完了</option></select></label><button>絞り込む</button><a href="inquiries.php">解除</a></form>
     <?php if (!$list): ?><p class="empty-state">お問い合わせはまだありません。</p><?php endif; ?>
 
     <?php foreach ($list as $inquiry): ?>
       <article class="inquiry<?= $inquiry['is_read'] ? '' : ' unread' ?>">
+        <?php if ((int)$inquiry['is_overdue'] === 1): ?><p class="review-needed" role="status">要対応：受付から24時間以上経過</p><?php endif; ?>
         <p>
           <?php if (!$inquiry['is_read']): ?><strong>未読</strong> ・ <?php endif; ?>
           <?= h($inquiry['created_at']) ?> ・ <?= h($inquiry['name']) ?> ・
