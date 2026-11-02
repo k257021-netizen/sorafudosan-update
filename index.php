@@ -4,6 +4,11 @@ $homeFavoriteIds = !empty($_SESSION['customer_id'])
     ? array_fill_keys(customer_favorite_ids($pdo, (int)$_SESSION['customer_id']), true)
     : [];
 $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
+$homeServiceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$homeAreaPlaceholders = implode(',', array_fill(0, count($homeServiceAreas), '?'));
+$homePropertyStmt = $pdo->prepare("SELECT id, name, station, area, transaction_type, rent, sale_price, image, description, pet_allowed, layout FROM properties WHERE area IN ($homeAreaPlaceholders) AND status = 'available' ORDER BY updated_at DESC, id DESC LIMIT 4");
+$homePropertyStmt->execute($homeServiceAreas);
+$homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -11,8 +16,8 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5f7fb">
-    <meta name="description" content="横浜・川崎エリアのお部屋探しを、Sora Livingがお手伝いします。学校や駅、家賃の条件から物件を検索できます。">
-    <title>お部屋探し | Sora Living</title>
+    <meta name="description" content="横浜・川崎エリアの賃貸・売買物件探しを、Sora Livingがお手伝いします。学校や駅、価格の条件から物件を検索できます。">
+    <title>住まい探し | Sora Living</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="home-page">
@@ -144,16 +149,6 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                             <option value="向ヶ丘遊園駅">向ヶ丘遊園駅</option>
                             <option value="新百合ヶ丘駅">新百合ヶ丘駅</option>
                         </optgroup>
-                        <optgroup label="近隣エリア">
-                            <option value="鎌倉駅">鎌倉駅</option>
-                            <option value="藤沢駅">藤沢駅</option>
-                            <option value="逗子駅">逗子駅</option>
-                            <option value="横須賀中央駅">横須賀中央駅</option>
-                            <option value="大和駅">大和駅</option>
-                            <option value="町田駅">町田駅</option>
-                            <option value="蒲田駅">蒲田駅</option>
-                            <option value="品川駅">品川駅</option>
-                        </optgroup>
                     </select>
                     <button type="submit" class="primary-button">物件を探す</button>
                 </form>
@@ -182,15 +177,8 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                             <option value="宮前区">宮前区</option><option value="多摩区">多摩区</option>
                             <option value="麻生区">麻生区</option>
                         </optgroup>
-                        <optgroup label="近隣エリア">
-                            <option value="鎌倉市">鎌倉市</option><option value="藤沢市">藤沢市</option>
-                            <option value="逗子市">逗子市</option><option value="横須賀市">横須賀市</option>
-                            <option value="大和市">大和市</option><option value="町田市">町田市</option>
-                            <option value="大田区">東京都大田区</option><option value="品川区">東京都品川区</option>
-                        </optgroup>
-                        <optgroup label="既存登録（市全体）">
-                            <option value="横浜市">横浜市（市全体）</option>
-                            <option value="川崎市">川崎市（市全体）</option>
+                        <optgroup label="市全体で登録された物件">
+                            <option value="横浜市">横浜市</option><option value="川崎市">川崎市</option>
                         </optgroup>
                     </select>
                     <button type="submit" class="primary-button">物件を探す</button>
@@ -200,14 +188,19 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
             <section id="condition-section" class="search-section search-panel" aria-labelledby="condition-title" hidden>
                 <h2 id="condition-title">条件から探す</h2>
                 <form action="search.php" method="GET" class="filter-form filter-form-inline">
-                    <label for="max-rent">家賃の上限</label>
+                    <label for="transaction-type-search">物件種別</label>
+                    <select id="transaction-type-search" name="transaction_type" data-transaction-type><option value="">賃貸・売買どちらも</option><option value="rent">賃貸</option><option value="sale">売買</option></select>
+                    <label for="max-rent" data-type-fields="rent">家賃の上限
                     <select id="max-rent" name="max_rent">
                         <option value="">指定なし</option>
                         <option value="50000">50,000円まで</option>
                         <option value="60000">60,000円まで</option>
                         <option value="70000">70,000円まで</option>
                         <option value="80000">80,000円まで</option>
-                    </select>
+                    </select></label>
+                    <label for="max-sale-price" data-type-fields="sale">販売価格の上限
+                    <select id="max-sale-price" name="max_sale_price"><option value="">指定なし</option><option value="30000000">3,000万円まで</option><option value="50000000">5,000万円まで</option><option value="80000000">8,000万円まで</option></select>
+                    </label>
                     <label for="condition-station">最寄り駅</label>
                     <select id="condition-station" name="station">
                         <option value="">指定なし</option>
@@ -215,9 +208,8 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                         <option value="川崎駅">川崎駅</option><option value="武蔵小杉駅">武蔵小杉駅</option>
                         <option value="溝の口駅">溝の口駅</option><option value="桜木町駅">桜木町駅</option>
                         <option value="関内駅">関内駅</option><option value="金沢八景駅">金沢八景駅</option>
-                        <option value="戸塚駅">戸塚駅</option><option value="鎌倉駅">鎌倉駅</option>
-                        <option value="藤沢駅">藤沢駅</option><option value="逗子駅">逗子駅</option>
-                        <option value="大和駅">大和駅</option><option value="町田駅">町田駅</option>
+                        <option value="戸塚駅">戸塚駅</option><option value="京急川崎駅">京急川崎駅</option>
+                        <option value="登戸駅">登戸駅</option><option value="新百合ヶ丘駅">新百合ヶ丘駅</option>
                     </select>
                     <label for="condition-layout">間取り</label>
                     <select id="condition-layout" name="layout">
@@ -247,46 +239,22 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
                     <p class="hero-copy">掲載内容はイメージ用のサンプルです。気になる部屋は詳細をご覧ください。</p>
                 </div>
                 <div id="property-list">
+                    <?php foreach ($homeProperties as $property): ?>
                     <article class="property-card">
-                        <a href="property.php?id=1">
-                            <img src="images/property1.jpg" alt="サンプルマンションのイメージ写真" loading="lazy">
-                            <h3>サンプルマンション</h3>
+                        <p class="transaction-badge"><?= $property['transaction_type'] === 'sale' ? '売買' : '賃貸' ?></p>
+                        <a href="property.php?id=<?= (int)$property['id'] ?>">
+                            <img src="<?= h($property['image'] ?: 'images/property1.jpg') ?>" alt="<?= h($property['name']) ?>の物件写真" loading="lazy">
+                            <h3><?= h($property['name']) ?></h3>
                         </a>
-                        <p class="sample-badge">架空のサンプル</p>
-                        <p>最寄り駅：横浜駅</p><p>横浜市</p><p>間取り：1K ・ ペット不可</p>
-                        <p class="price">家賃 60,000円</p>
-                        <button type="button" class="fav-button" data-id="1" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[1]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
+                        <?php if (str_starts_with((string)$property['description'], '【架空のサンプル物件】')): ?><p class="sample-badge">架空のサンプル</p><?php endif; ?>
+                        <?php if ($property['station']): ?><p>最寄り駅：<?= h($property['station']) ?></p><?php endif; ?>
+                        <?php if ($property['area']): ?><p><?= h($property['area']) ?></p><?php endif; ?>
+                        <p>間取り：<?= h($property['layout']) ?> ・ ペット<?= (int)$property['pet_allowed'] === 1 ? '可' : '不可' ?></p>
+                        <p class="price"><?= $property['transaction_type'] === 'sale' ? '販売価格' : '家賃（月額）' ?> <?= number_format((int)($property['sale_price'] ?? $property['rent'] ?? 0)) ?>円</p>
+                        <button type="button" class="fav-button" data-id="<?= (int)$property['id'] ?>" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[(int)$property['id']]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
-                    <article class="property-card">
-                        <a href="property.php?id=2">
-                            <img src="images/property2.jpg" alt="さくらハイツのイメージ写真" loading="lazy">
-                            <h3>さくらハイツ</h3>
-                        </a>
-                        <p class="sample-badge">架空のサンプル</p>
-                        <p>最寄り駅：桜木町駅</p><p>横浜市</p><p>間取り：1R ・ ペット不可</p>
-                        <p class="price">家賃 55,000円</p>
-                        <button type="button" class="fav-button" data-id="2" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[2]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
-                    </article>
-                    <article class="property-card">
-                        <a href="property.php?id=3">
-                            <img src="images/property3.jpg" alt="川崎レジデンスのイメージ写真" loading="lazy">
-                            <h3>川崎レジデンス</h3>
-                        </a>
-                        <p class="sample-badge">架空のサンプル</p>
-                        <p>最寄り駅：川崎駅</p><p>川崎市</p><p>間取り：1K ・ ペット不可</p>
-                        <p class="price">家賃 65,000円</p>
-                        <button type="button" class="fav-button" data-id="3" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[3]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
-                    </article>
-                    <article class="property-card">
-                        <a href="property.php?id=4">
-                            <img src="images/property4.jpg" alt="レオパレス24-12のイメージ写真" loading="lazy">
-                            <h3>レオパレス24-12</h3>
-                        </a>
-                        <p class="sample-badge">架空のサンプル</p>
-                        <p>最寄り駅：川崎駅</p><p>川崎市</p><p>間取り：1K ・ ペット不可</p>
-                        <p class="price">家賃 80,000円</p>
-                        <button type="button" class="fav-button" data-id="4" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[4]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
-                    </article>
+                    <?php endforeach; ?>
+                    <?php if (!$homeProperties): ?><p class="empty-state">現在おすすめの物件はありません。</p><?php endif; ?>
                 </div>
                 <p class="featured-more"><a class="primary-button" href="search.php?browse=1">すべての物件を見る</a></p>
             </section>
@@ -299,5 +267,6 @@ $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
     </div>
     <script src="script.js"></script>
     <script src="favorites.js"></script>
+    <script src="property-form.js?v=3"></script>
 </body>
 </html>

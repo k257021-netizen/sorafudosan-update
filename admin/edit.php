@@ -11,6 +11,7 @@ $property = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$property) { http_response_code(404); exit('物件が見つかりませんでした。'); }
 
 $error = '';
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valid($_POST['csrf'] ?? '')) {
         $error = 'ページの有効期限が切れました。再読み込みして、もう一度お試しください。';
@@ -20,7 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $area = trim(input_string($_POST['area'] ?? ''));
         $school = trim(input_string($_POST['school'] ?? ''));
         $description = trim(input_string($_POST['description'] ?? ''));
-        $rent = filter_var(input_string($_POST['rent'] ?? ''), FILTER_VALIDATE_INT);
+        $transactionType = input_string($_POST['transaction_type'] ?? $property['transaction_type']);
+        $rentInput = input_string($_POST['rent'] ?? '');
+        $rent = $rentInput === '' ? null : filter_var($rentInput, FILTER_VALIDATE_INT);
+        $salePriceInput = input_string($_POST['sale_price'] ?? '');
+        $salePrice = $salePriceInput === '' ? null : filter_var($salePriceInput, FILTER_VALIDATE_INT);
+        $managementFeeInput = input_string($_POST['management_fee'] ?? '');
+        $managementFee = $managementFeeInput === '' ? null : filter_var($managementFeeInput, FILTER_VALIDATE_INT);
+        $depositInput = input_string($_POST['deposit_amount'] ?? '');
+        $depositAmount = $depositInput === '' ? null : filter_var($depositInput, FILTER_VALIDATE_INT);
+        $keyMoneyInput = input_string($_POST['key_money_amount'] ?? '');
+        $keyMoneyAmount = $keyMoneyInput === '' ? null : filter_var($keyMoneyInput, FILTER_VALIDATE_INT);
         $areaRaw = input_string($_POST['area_sqm'] ?? '');
         $areaSqm = $areaRaw === '' ? null : filter_var($areaRaw, FILTER_VALIDATE_FLOAT);
         $floorRaw = input_string($_POST['floor_number'] ?? '');
@@ -35,12 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($name === '' || text_length($name) > 100) {
             $error = '物件名を100文字以内で入力してください。';
-        } elseif ($rent === false || $rent < 1) {
-            $error = '家賃は1円以上の整数で入力してください。';
+        } elseif (!in_array($transactionType, ['rent', 'sale'], true)) {
+            $error = '物件種別を選択してください。';
+        } elseif (($transactionType === 'rent' && ($rent === null || $rent === false || $rent < 1)) || ($transactionType === 'sale' && ($salePrice === null || $salePrice === false || $salePrice < 1))) {
+            $error = $transactionType === 'rent' ? '家賃は1円以上で入力してください。' : '販売価格は1円以上で入力してください。';
+        } elseif (in_array(false, [$managementFee, $depositAmount, $keyMoneyAmount], true) || array_filter([$managementFee, $depositAmount, $keyMoneyAmount], static fn($value) => $value !== null && $value < 0)) {
+            $error = '管理費、敷金、礼金は0円以上の整数で入力してください。';
         } elseif (($areaRaw !== '' && ($areaSqm === false || $areaSqm < 1 || $areaSqm > 9999)) || ($floorRaw !== '' && ($floorNumber === false || $floorNumber < 1 || $floorNumber > 200)) || ($initialRaw !== '' && ($initialCost === false || $initialCost < 0))) {
             $error = '面積、階数、初期費用を正しく入力してください。';
         } elseif (!in_array($layout, $layouts, true) || !in_array($petAllowedInput, ['0', '1'], true) || !in_array($status, ['available','reserved','rented'], true)) {
             $error = '間取りとペット条件を選択してください。';
+        } elseif (!in_array($area, $serviceAreas, true)) {
+            $error = '地域は横浜市または川崎市の区から選択してください。';
         } elseif (text_length($station) > 50 || text_length($area) > 50 || text_length($school) > 50) {
             $error = '駅名、地域、学校名はそれぞれ50文字以内で入力してください。';
         } else {
@@ -48,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($image !== null && str_starts_with($image, 'ERROR:')) {
                 $error = substr($image, 6);
             } else {
-                $stmt = $pdo->prepare('UPDATE properties SET name=?, station=?, area=?, school=?, rent=?, pet_allowed=?, layout=?, area_sqm=?, floor_number=?, initial_cost=?, description=?, image=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?');
-                $stmt->execute([$name, $station, $area, $school, $rent, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $image ?? $property['image'], $status, $id]);
+                $stmt = $pdo->prepare('UPDATE properties SET name=?, station=?, area=?, school=?, transaction_type=?, rent=?, sale_price=?, management_fee=?, deposit_amount=?, key_money_amount=?, pet_allowed=?, layout=?, area_sqm=?, floor_number=?, initial_cost=?, description=?, image=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?');
+                $stmt->execute([$name, $station, $area, $school, $transactionType, $transactionType === 'rent' ? $rent : null, $transactionType === 'sale' ? $salePrice : null, $transactionType === 'rent' ? $managementFee : null, $transactionType === 'rent' ? $depositAmount : null, $transactionType === 'rent' ? $keyMoneyAmount : null, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $image ?? $property['image'], $status, $id]);
                 header('Location: index.php');
                 exit;
             }
@@ -62,6 +79,11 @@ $currentStation = input_string($_POST['station'] ?? $property['station']);
 $currentArea = input_string($_POST['area'] ?? $property['area']);
 $currentSchool = input_string($_POST['school'] ?? $property['school']);
 $currentRent = input_string($_POST['rent'] ?? $property['rent']);
+$currentType = input_string($_POST['transaction_type'] ?? $property['transaction_type']);
+$currentSalePrice = input_string($_POST['sale_price'] ?? $property['sale_price']);
+$currentManagementFee = input_string($_POST['management_fee'] ?? $property['management_fee']);
+$currentDeposit = input_string($_POST['deposit_amount'] ?? $property['deposit_amount']);
+$currentKeyMoney = input_string($_POST['key_money_amount'] ?? $property['key_money_amount']);
 $currentLayout = input_string($_POST['layout'] ?? $property['layout']);
 $currentPetAllowed = input_string($_POST['pet_allowed'] ?? (string)$property['pet_allowed']);
 $currentDescription = input_string($_POST['description'] ?? $property['description']);
@@ -92,6 +114,7 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
   <link rel="stylesheet" href="../style.css">
 </head>
 <body>
+<?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
   <p><a href="index.php">← 物件管理へ戻る</a></p>
   <section class="search-section">
@@ -107,7 +130,7 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
         <input name="station" value="<?= h($currentStation) ?>" maxlength="50">
       </label>
       <label>地域
-        <input name="area" value="<?= h($currentArea) ?>" maxlength="50">
+        <select name="area" class="form-control" required><?php foreach ($serviceAreas as $serviceArea): ?><option value="<?= h($serviceArea) ?>" <?= $currentArea === $serviceArea ? 'selected' : '' ?>><?= h($serviceArea) ?></option><?php endforeach; ?></select>
       </label>
       <label>学校・通学エリア
         <select name="school" class="form-control">
@@ -116,9 +139,10 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
           <?php endforeach; ?>
         </select>
       </label>
-      <label>家賃（月額・円）
-        <input type="number" name="rent" value="<?= h($currentRent) ?>" min="1" step="1" required>
-      </label>
+      <label>取引種別<select name="transaction_type" data-transaction-type class="form-control"><option value="rent" <?= $currentType === 'rent' ? 'selected' : '' ?>>賃貸</option><option value="sale" <?= $currentType === 'sale' ? 'selected' : '' ?>>売買</option></select></label>
+      <label data-type-fields="rent">家賃（月額・円）<input type="number" name="rent" data-type-input value="<?= h($currentRent) ?>" min="1" step="1"></label>
+      <label data-type-fields="sale" hidden>販売価格（円）<input type="number" name="sale_price" data-type-input value="<?= h($currentSalePrice) ?>" min="1" step="10000"></label>
+      <div class="admin-fields-grid" data-type-fields="rent"><label>管理費・共益費（月額・円）<input type="number" name="management_fee" value="<?= h($currentManagementFee) ?>" min="0" step="100"></label><label>敷金（円）<input type="number" name="deposit_amount" value="<?= h($currentDeposit) ?>" min="0" step="1000"></label><label>礼金（円）<input type="number" name="key_money_amount" value="<?= h($currentKeyMoney) ?>" min="0" step="1000"></label></div>
       <label>間取り
         <select name="layout" class="form-control" required>
           <?php foreach (['1R', '1K', '1DK', '1LDK', '2DK', '2LDK', '3LDK'] as $option): ?>
@@ -133,7 +157,7 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
         </select>
       </label>
       <label>募集状況<select name="status" class="form-control"><option value="available" <?=$currentStatus==='available'?'selected':''?>>募集中</option><option value="reserved" <?=$currentStatus==='reserved'?'selected':''?>>申込あり</option><option value="rented" <?=$currentStatus==='rented'?'selected':''?>>契約済み</option></select></label>
-      <div class="admin-fields-grid"><label>専有面積（m²・任意）<input type="number" name="area_sqm" min="1" max="9999" step="0.01" value="<?=h($currentAreaSqm)?>"></label><label>所在階（任意）<input type="number" name="floor_number" min="1" max="200" value="<?=h($currentFloor)?>"></label><label>初期費用の目安（円・任意）<input type="number" name="initial_cost" min="0" step="1000" value="<?=h($currentInitialCost)?>"></label></div>
+      <div class="admin-fields-grid"><label>専有面積（m²・任意）<input type="number" name="area_sqm" min="1" max="9999" step="0.01" value="<?=h($currentAreaSqm)?>"></label><label>所在階（任意）<input type="number" name="floor_number" min="1" max="200" value="<?=h($currentFloor)?>"></label><label>初期費用・諸費用の目安（円・任意）<input type="number" name="initial_cost" min="0" step="1000" value="<?=h($currentInitialCost)?>"></label></div>
       <label>現在の写真
         <img src="../<?= h($property['image'] ?: 'images/property1.jpg') ?>" alt="<?= h($property['name']) ?>の現在の写真" style="display:block;width:min(100%,360px);max-height:240px;object-fit:cover;border-radius:12px;margin-top:8px;">
       </label>
@@ -147,5 +171,6 @@ if ($currentSchool && !isset($schools[$currentSchool])) $schools[$currentSchool]
     </form>
   </section>
 </div>
+<script src="../property-form.js?v=3"></script>
 </body>
 </html>

@@ -57,7 +57,11 @@ FROM (
 ) AS samples
 WHERE NOT EXISTS (
     SELECT 1 FROM `properties` AS existing WHERE existing.`name` = samples.`name`
-);
+) AND samples.`area` IN ('鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区');
+
+INSERT INTO `properties` (`name`, `station`, `area`, `transaction_type`, `sale_price`, `description`, `image`)
+SELECT '横浜サンプル戸建（売買）', '横浜駅', '西区', 'sale', 49800000, '【架空のサンプル物件】売買機能の表示確認用に作成した参考物件です。', 'images/demo-room-5.jpg'
+WHERE NOT EXISTS (SELECT 1 FROM `properties` WHERE `name` = '横浜サンプル戸建（売買）');
 
 UPDATE `properties` SET `layout` = '1R' WHERE `name` IN ('さくらハイツ', '金沢八景シーサイド', '向ヶ丘遊園メゾン', '横浜西口スカイハイツ', '金沢文庫オーシャンビュー', '上大岡ガーデンテラス', '宮前平ナチュラルハウス');
 UPDATE `properties` SET `layout` = '1DK' WHERE `name` IN ('白楽グリーンコート', '鶴見リバーコート', '溝の口ミュージックハイツ', 'みなとみらいパークサイド', '石川町クラシックハウス', '武蔵小杉タワーサイド', '逗子なぎさコート');

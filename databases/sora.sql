@@ -31,7 +31,12 @@ CREATE TABLE `properties` (
   `station` varchar(50) DEFAULT NULL,
   `area` varchar(50) DEFAULT NULL,
   `school` varchar(50) DEFAULT NULL,
-  `rent` int(11) NOT NULL,
+  `transaction_type` varchar(10) NOT NULL DEFAULT 'rent',
+  `rent` int(11) DEFAULT NULL,
+  `sale_price` bigint(20) DEFAULT NULL,
+  `management_fee` int(11) DEFAULT NULL,
+  `deposit_amount` int(11) DEFAULT NULL,
+  `key_money_amount` int(11) DEFAULT NULL,
   `pet_allowed` tinyint(1) NOT NULL DEFAULT 0,
   `layout` varchar(20) NOT NULL DEFAULT '1K',
   `area_sqm` decimal(6,2) DEFAULT NULL,
@@ -65,6 +70,9 @@ INSERT INTO `properties` (`id`, `name`, `station`, `area`, `school`, `rent`, `de
 (18, '鎌倉小町レジデンス', '鎌倉駅', '鎌倉市', 'kanagawa', 81000, '【架空のサンプル物件】鎌倉駅周辺を想定した落ち着いた部屋です。', 'images/property2.jpg'),
 (19, '藤沢サンライト', '藤沢駅', '藤沢市', 'kanagawa', 70000, '【架空のサンプル物件】藤沢駅周辺の暮らしを想定した部屋です。', 'images/property3.jpg'),
 (20, '横須賀ベイサイド', '横須賀中央駅', '横須賀市', 'kanagawa', 64000, '【架空のサンプル物件】横須賀中央駅周辺を想定した部屋です。', 'images/property4.jpg');
+
+INSERT INTO `properties` (`name`, `station`, `area`, `transaction_type`, `sale_price`, `description`, `image`)
+VALUES ('横浜サンプル戸建（売買）', '横浜駅', '西区', 'sale', 49800000, '【架空のサンプル物件】売買機能の表示確認用に作成した参考物件です。', 'images/demo-room-5.jpg');
 
 INSERT INTO `properties` (`name`, `station`, `area`, `school`, `rent`, `description`, `image`)
 SELECT samples.`name`, samples.`station`, samples.`area`, samples.`school`, samples.`rent`, samples.`description`, samples.`image`

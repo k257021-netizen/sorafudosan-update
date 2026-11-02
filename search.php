@@ -3,6 +3,20 @@ require 'db.php';
 
 $where = [];
 $params = [];
+// Keep every result inside the service area, including unfiltered browse requests.
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$areaPlaceholders = [];
+foreach ($serviceAreas as $index => $serviceArea) {
+    $placeholder = ':service_area_' . $index;
+    $areaPlaceholders[] = $placeholder;
+    $params[$placeholder] = $serviceArea;
+}
+$where[] = 'area IN (' . implode(', ', $areaPlaceholders) . ')';
+$transactionType = input_string($_GET['transaction_type'] ?? '');
+if (in_array($transactionType, ['rent', 'sale'], true)) {
+    $where[] = 'transaction_type = :transaction_type';
+    $params[':transaction_type'] = $transactionType;
+}
 $query = trim(input_string($_GET['q'] ?? ''));
 $query = function_exists('mb_substr') ? mb_substr($query, 0, 100, 'UTF-8') : substr($query, 0, 100);
 
@@ -13,14 +27,14 @@ if ($query !== '') {
 }
 
 $station = trim(input_string($_GET['station'] ?? ''));
-$stations = ['横浜駅', '新横浜駅', '菊名駅', '日吉駅', '鶴見駅', '桜木町駅', '関内駅', '石川町駅', '戸塚駅', '金沢八景駅', '白楽駅', '和田町駅', '川崎駅', '京急川崎駅', '武蔵小杉駅', '溝の口駅', '武蔵溝ノ口駅', '登戸駅', '向ヶ丘遊園駅', '新百合ヶ丘駅', '鎌倉駅', '藤沢駅', '逗子駅', '横須賀中央駅', '大和駅', '町田駅', '蒲田駅', '品川駅'];
+$stations = ['横浜駅', '新横浜駅', '菊名駅', '日吉駅', '鶴見駅', '桜木町駅', '関内駅', '石川町駅', '戸塚駅', '金沢八景駅', '白楽駅', '和田町駅', '川崎駅', '京急川崎駅', '武蔵小杉駅', '溝の口駅', '武蔵溝ノ口駅', '登戸駅', '向ヶ丘遊園駅', '新百合ヶ丘駅'];
 if (in_array($station, $stations, true)) {
     $where[] = 'station = :station';
     $params[':station'] = $station;
 }
 
 $area = trim(input_string($_GET['area'] ?? ''));
-$areas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '鎌倉市', '藤沢市', '逗子市', '横須賀市', '大和市', '町田市', '大田区', '品川区', '横浜市', '川崎市'];
+$areas = $serviceAreas;
 if (in_array($area, $areas, true)) {
     $where[] = 'area = :area';
     $params[':area'] = $area;
@@ -35,8 +49,13 @@ if (in_array($school, $schools, true)) {
 
 $maxRent = input_string($_GET['max_rent'] ?? '');
 if ($maxRent !== '' && filter_var($maxRent, FILTER_VALIDATE_INT) !== false && (int)$maxRent > 0) {
-    $where[] = 'rent <= :rent';
+    $where[] = "transaction_type = 'rent' AND rent <= :rent";
     $params[':rent'] = (int)$maxRent;
+}
+$maxSalePrice = input_string($_GET['max_sale_price'] ?? '');
+if ($maxSalePrice !== '' && filter_var($maxSalePrice, FILTER_VALIDATE_INT) !== false && (int)$maxSalePrice > 0) {
+    $where[] = "transaction_type = 'sale' AND sale_price <= :sale_price";
+    $params[':sale_price'] = (int)$maxSalePrice;
 }
 
 $petAllowed = input_string($_GET['pet_allowed'] ?? '');
@@ -61,13 +80,13 @@ if ($maxInitial !== '' && filter_var($maxInitial, FILTER_VALIDATE_INT) !== false
     $where[] = 'initial_cost <= :max_initial_cost'; $params[':max_initial_cost'] = (int)$maxInitial;
 }
 
-$searchPrompt = !$where && input_string($_GET['browse'] ?? '') !== '1';
+$searchPrompt = count($where) === 1 && input_string($_GET['browse'] ?? '') !== '1';
 $status = input_string($_GET['status'] ?? 'available');
 if (!in_array($status, ['available', 'reserved', 'rented', 'all'], true)) $status = 'available';
 if ($status !== 'all') { $where[] = 'status = :status'; $params[':status'] = $status; }
 
 $sort = input_string($_GET['sort'] ?? 'rent_asc');
-$sorts = ['rent_asc' => 'rent ASC, id DESC', 'rent_desc' => 'rent DESC, id DESC', 'newest' => 'updated_at DESC, id DESC'];
+$sorts = ['rent_asc' => 'COALESCE(rent, sale_price) ASC, id DESC', 'rent_desc' => 'COALESCE(rent, sale_price) DESC, id DESC', 'newest' => 'updated_at DESC, id DESC'];
 if (!isset($sorts[$sort])) $sort = 'rent_asc';
 $page = max(1, min(10000, (int)($_GET['page'] ?? 1)));
 $pageSize = 12;
@@ -77,7 +96,7 @@ $countStmt->execute($params);
 $total = (int)$countStmt->fetchColumn();
 $pages = max(1, (int)ceil($total / $pageSize));
 if ($page > $pages) $page = $pages;
-$sql = 'SELECT id, name, station, area, rent, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties' . $whereSql . ' ORDER BY ' . $sorts[$sort] . ' LIMIT ' . $pageSize . ' OFFSET ' . (($page - 1) * $pageSize);
+$sql = 'SELECT id, name, station, area, transaction_type, rent, sale_price, management_fee, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties' . $whereSql . ' ORDER BY ' . $sorts[$sort] . ' LIMIT ' . $pageSize . ' OFFSET ' . (($page - 1) * $pageSize);
 
 $list = [];
 if (!$searchPrompt) {
@@ -98,12 +117,13 @@ $favoriteCsrf = $isCustomer ? csrf_token() : '';
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <a class="skip-link" href="#main-content">検索結果へ移動</a>
 <div class="page-shell">
   <p><a href="index.php">← トップページへ戻る</a></p>
   <main id="main-content"><section class="search-section" aria-labelledby="results-title">
     <h1 class="page-title" id="results-title"><?= $searchPrompt ? '検索条件を入力してください' : '検索結果（' . $total . '件）' ?></h1>
-    <?php if (!$searchPrompt): ?><form method="get" class="filter-row search-refine"><?php if (input_string($_GET['browse'] ?? '') === '1'): ?><input type="hidden" name="browse" value="1"><?php endif; ?><?php foreach (['q','station','area','school','max_rent','pet_allowed','layout','min_area','max_initial_cost'] as $key): if (isset($_GET[$key]) && $_GET[$key] !== ''): ?><input type="hidden" name="<?= h($key) ?>" value="<?= h(input_string($_GET[$key])) ?>"><?php endif; endforeach; ?><label>募集状況 <select name="status"><option value="available" <?= $status==='available'?'selected':'' ?>>募集中</option><option value="reserved" <?= $status==='reserved'?'selected':'' ?>>申込あり</option><option value="rented" <?= $status==='rented'?'selected':'' ?>>契約済み</option><option value="all" <?= $status==='all'?'selected':'' ?>>すべて</option></select></label><label>並び順 <select name="sort"><option value="rent_asc" <?=$sort==='rent_asc'?'selected':''?>>家賃が安い順</option><option value="rent_desc" <?=$sort==='rent_desc'?'selected':''?>>家賃が高い順</option><option value="newest" <?=$sort==='newest'?'selected':''?>>更新が新しい順</option></select></label><button>適用</button><?php if ($where): ?><a class="reset-filter" href="search.php?browse=1">条件をクリアして物件を見る</a><?php endif; ?></form><?php endif; ?>
+    <?php if (!$searchPrompt): ?><form method="get" class="filter-row search-refine"><?php if (input_string($_GET['browse'] ?? '') === '1'): ?><input type="hidden" name="browse" value="1"><?php endif; ?><?php foreach (['q','station','area','school','transaction_type','max_rent','max_sale_price','pet_allowed','layout','min_area','max_initial_cost'] as $key): if (isset($_GET[$key]) && $_GET[$key] !== ''): ?><input type="hidden" name="<?= h($key) ?>" value="<?= h(input_string($_GET[$key])) ?>"><?php endif; endforeach; ?><label>募集状況 <select name="status"><option value="available" <?= $status==='available'?'selected':'' ?>>募集中</option><option value="reserved" <?= $status==='reserved'?'selected':'' ?>>申込あり</option><option value="rented" <?= $status==='rented'?'selected':'' ?>>契約済み</option><option value="all" <?= $status==='all'?'selected':'' ?>>すべて</option></select></label><label>並び順 <select name="sort"><option value="rent_asc" <?=$sort==='rent_asc'?'selected':''?>>価格が安い順</option><option value="rent_desc" <?=$sort==='rent_desc'?'selected':''?>>価格が高い順</option><option value="newest" <?=$sort==='newest'?'selected':''?>>更新が新しい順</option></select></label><button>適用</button><?php if ($where): ?><a class="reset-filter" href="search.php?browse=1">条件をクリアして物件を見る</a><?php endif; ?></form><?php endif; ?>
     <div id="property-list">
       <?php if ($searchPrompt): ?>
         <p class="empty-state" role="status">学校・駅・地域・物件名、家賃・間取り・ペット・面積・初期費用の条件を1つ以上選んで検索してください。</p>
@@ -112,6 +132,7 @@ $favoriteCsrf = $isCustomer ? csrf_token() : '';
       <?php endif; ?>
       <?php foreach ($list as $p): ?>
         <article class="property-card">
+          <p class="transaction-badge"><?= $p['transaction_type'] === 'sale' ? '売買' : '賃貸' ?></p>
           <a href="property.php?id=<?= (int)$p['id'] ?>">
             <img src="<?= h($p['image'] ?: 'images/property1.jpg') ?>" alt="<?= h($p['name']) ?>の物件写真" loading="lazy">
             <h3><?= h($p['name']) ?></h3>
@@ -122,7 +143,8 @@ $favoriteCsrf = $isCustomer ? csrf_token() : '';
           <p>間取り：<?= h($p['layout']) ?> ・ ペット<?= (int)$p['pet_allowed'] === 1 ? '可' : '不可' ?></p>
           <?php if ($p['area_sqm'] !== null || $p['floor_number'] !== null): ?><p><?php if ($p['area_sqm'] !== null): ?>専有面積 <?= h($p['area_sqm']) ?>m²<?php endif; ?><?php if ($p['floor_number'] !== null): ?><?= $p['area_sqm'] !== null ? ' ・ ' : '' ?><?= (int)$p['floor_number'] ?>階<?php endif; ?></p><?php endif; ?>
           <?php if ($p['initial_cost'] !== null): ?><p>初期費用の目安 <?= number_format((int)$p['initial_cost']) ?>円</p><?php endif; ?>
-          <p class="price">家賃 <?= number_format((int)$p['rent']) ?>円</p>
+          <p class="price"><?= $p['transaction_type'] === 'sale' ? '販売価格' : '家賃（月額）' ?> <?= number_format((int)($p['sale_price'] ?? $p['rent'] ?? 0)) ?>円</p>
+          <?php if ($p['transaction_type'] === 'rent' && $p['management_fee'] !== null): ?><p>管理費・共益費 <?= number_format((int)$p['management_fee']) ?>円／月</p><?php endif; ?>
           <p>募集状況：<?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$p['status']] ?? '募集中' ?> ・ 更新 <?= h(substr((string)$p['updated_at'],0,10)) ?></p>
           <button type="button" class="fav-button" data-id="<?= (int)$p['id'] ?>" data-authenticated="<?= $isCustomer ? '1' : '0' ?>" data-favorite="<?= isset($favoriteIds[(int)$p['id']]) ? '1' : '0' ?>" data-csrf="<?= h($favoriteCsrf) ?>"></button>
         </article>

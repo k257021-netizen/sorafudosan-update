@@ -1,6 +1,18 @@
 -- Safe to import repeatedly in phpMyAdmin. Existing accounts are kept.
 USE `sora`;
 
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='transaction_type')=0, 'ALTER TABLE properties ADD COLUMN transaction_type varchar(10) NOT NULL DEFAULT ''rent'' AFTER school', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+ALTER TABLE properties MODIFY COLUMN rent int(11) DEFAULT NULL;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='sale_price')=0, 'ALTER TABLE properties ADD COLUMN sale_price bigint(20) DEFAULT NULL AFTER rent', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='management_fee')=0, 'ALTER TABLE properties ADD COLUMN management_fee int(11) DEFAULT NULL AFTER sale_price', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='deposit_amount')=0, 'ALTER TABLE properties ADD COLUMN deposit_amount int(11) DEFAULT NULL AFTER management_fee', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='key_money_amount')=0, 'ALTER TABLE properties ADD COLUMN key_money_amount int(11) DEFAULT NULL AFTER deposit_amount', 'SELECT 1');
+PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='pet_allowed')=0, 'ALTER TABLE properties ADD COLUMN pet_allowed tinyint(1) NOT NULL DEFAULT 0 AFTER rent', 'SELECT 1');
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='layout')=0, 'ALTER TABLE properties ADD COLUMN layout varchar(20) NOT NULL DEFAULT ''1K'' AFTER pet_allowed', 'SELECT 1');
@@ -15,6 +27,19 @@ SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='properties' AND column_name='updated_at')=0, 'ALTER TABLE properties ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP', 'SELECT 1');
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;
+
+CREATE TABLE IF NOT EXISTS `customers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `email_verified_at` datetime DEFAULT NULL,
+  `terms_accepted_at` datetime DEFAULT NULL,
+  `privacy_accepted_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 SET @sora_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='customers' AND column_name='email_verified_at')=0, 'ALTER TABLE customers ADD COLUMN email_verified_at datetime DEFAULT NULL', 'SELECT 1');
 PREPARE sora_stmt FROM @sora_ddl; EXECUTE sora_stmt; DEALLOCATE PREPARE sora_stmt;

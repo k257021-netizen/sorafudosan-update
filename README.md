@@ -19,9 +19,9 @@ Sora Living нь Японы Йокохама, Кавасаки орчмын тү
    INSERT INTO users (username, password_hash) VALUES ('admin', 'ЭНД_HASH_ОРОХ');
    ```
 
-5. `http://localhost/sorafudosan/` нээгээд сайтыг ашиглана. Админ хэсэг: `login.php`.
+5. `http://localhost/sorafudosan-update/` нээгээд сайтыг ашиглана. Админ хэсэг: `login.php`.
 
-Хуучин `sora` өгөгдлийн сантай бол эхлээд `databases/upgrade_accounts_and_preferences.sql` файлыг нэг удаа, дараа нь `databases/sample_properties.sql` файлыг phpMyAdmin-д импортлоно. Шинэчлэлтэд хэрэглэгчийн бүртгэлд зориулсан хүснэгт, тэжээвэр амьтны нөхцөл, байрны өрөөний төрөл, 28 зохиомол байр, Unsplash-аас авсан таван байрны зураг орсон. Жишээ байрны SQL-ийг дахин импортлоход ижил нэртэй байр давхар нэмэгдэхгүй.
+Хуучин `sora` өгөгдлийн сантай бол эхлээд `databases/upgrade_full_features.sql` файлыг, дараа нь `databases/sample_properties.sql` файлыг phpMyAdmin-д импортлоно. Бүрэн migration нь хуучин нэг удаагийн `upgrade_accounts_and_preferences.sql` migration-ийг орлоно. Жишээ байрны SQL-ийг дахин импортлоход ижил нэртэй байр давхар нэмэгдэхгүй.
 
 Энгийн хэрэглэгч `register.php`-ээр бүртгүүлж, `member-login.php`-ээр нэвтэрнэ. `login.php` нь админы нэвтрэх хуудас хэвээр. Байрны хайлт болон админы байр засах хэсэгт `ペット可/不可` болон `1R`-ээс `3LDK` хүртэлх өрөөний сонголт бий.
 

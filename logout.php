@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid($_POST['csrf'] ?? '')) {
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
   <section class="search-section">
     <h2>ログアウトしますか？</h2>

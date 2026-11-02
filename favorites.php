@@ -2,19 +2,21 @@
 require 'db.php';
 
 $list = [];
+$serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
+$areaPlaceholders = implode(',', array_fill(0, count($serviceAreas), '?'));
 $isCustomer = !empty($_SESSION['customer_id']);
 $csrf = csrf_token();
 if ($isCustomer) {
-    $stmt = $pdo->prepare('SELECT p.id, p.name, p.station, p.area, p.rent, p.image, p.description, p.pet_allowed, p.layout, p.area_sqm, p.floor_number, p.initial_cost, p.status, p.updated_at FROM customer_favorites f JOIN properties p ON p.id = f.property_id WHERE f.customer_id = ? ORDER BY f.created_at DESC');
-    $stmt->execute([(int)$_SESSION['customer_id']]);
+    $stmt = $pdo->prepare('SELECT p.id, p.name, p.station, p.area, p.transaction_type, p.rent, p.sale_price, p.management_fee, p.image, p.description, p.pet_allowed, p.layout, p.area_sqm, p.floor_number, p.initial_cost, p.status, p.updated_at FROM customer_favorites f JOIN properties p ON p.id = f.property_id WHERE f.customer_id = ? AND p.area IN (' . $areaPlaceholders . ') ORDER BY f.created_at DESC');
+    $stmt->execute(array_merge([(int)$_SESSION['customer_id']], $serviceAreas));
     $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $rawIds = array_map('intval', explode(',', (string)($_COOKIE['favorites'] ?? '')));
     $ids = array_slice(array_values(array_unique(array_filter($rawIds, static fn($id) => $id > 0))), 0, 100);
     if ($ids) {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $pdo->prepare("SELECT id, name, station, area, rent, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties WHERE id IN ($placeholders) ORDER BY rent ASC");
-        $stmt->execute($ids);
+        $stmt = $pdo->prepare("SELECT id, name, station, area, transaction_type, rent, sale_price, management_fee, image, description, pet_allowed, layout, area_sqm, floor_number, initial_cost, status, updated_at FROM properties WHERE id IN ($placeholders) AND area IN ($areaPlaceholders) ORDER BY COALESCE(rent, sale_price) ASC");
+        $stmt->execute(array_merge($ids, $serviceAreas));
         $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
@@ -28,6 +30,7 @@ if ($isCustomer) {
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
   <p><a href="index.php">← トップページへ戻る</a></p>
   <section class="search-section">
@@ -36,6 +39,7 @@ if ($isCustomer) {
       <?php if (!$list): ?><p class="empty-state">お気に入りに登録した物件はありません。</p><?php endif; ?>
       <?php foreach ($list as $p): ?>
         <article class="property-card">
+          <p class="transaction-badge"><?= $p['transaction_type'] === 'sale' ? '売買' : '賃貸' ?></p>
           <a href="property.php?id=<?= (int)$p['id'] ?>">
             <img src="<?= h($p['image'] ?: 'images/property1.jpg') ?>" alt="<?= h($p['name']) ?>の物件写真" loading="lazy">
             <h3><?= h($p['name']) ?></h3>
@@ -46,7 +50,8 @@ if ($isCustomer) {
           <p>間取り：<?= h($p['layout']) ?> ・ ペット<?= (int)$p['pet_allowed'] === 1 ? '可' : '不可' ?></p>
           <?php if ($p['area_sqm'] !== null): ?><p>専有面積：<?= h($p['area_sqm']) ?>m²</p><?php endif; ?><?php if ($p['floor_number'] !== null): ?><p>所在階：<?= (int)$p['floor_number'] ?>階</p><?php endif; ?><?php if ($p['initial_cost'] !== null): ?><p>初期費用の目安：<?= number_format((int)$p['initial_cost']) ?>円</p><?php endif; ?>
           <p>募集状況：<?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$p['status']] ?? '募集中' ?></p>
-          <p class="price">家賃 <?= number_format((int)$p['rent']) ?>円</p>
+          <p class="price"><?= $p['transaction_type'] === 'sale' ? '販売価格' : '家賃（月額）' ?> <?= number_format((int)($p['sale_price'] ?? $p['rent'] ?? 0)) ?>円</p>
+          <?php if ($p['transaction_type'] === 'rent' && $p['management_fee'] !== null): ?><p>管理費・共益費 <?= number_format((int)$p['management_fee']) ?>円／月</p><?php endif; ?>
           <button type="button" class="fav-button" data-id="<?= (int)$p['id'] ?>" data-authenticated="<?= $isCustomer ? '1' : '0' ?>" data-favorite="<?= $isCustomer ? '1' : '0' ?>" data-csrf="<?= $isCustomer ? h($csrf) : '' ?>"></button>
         </article>
       <?php endforeach; ?>
