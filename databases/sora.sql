@@ -61,8 +61,8 @@ CREATE TABLE `properties` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `properties` (`id`, `name`, `station`, `area`, `school`, `rent`, `description`, `image`) VALUES
-(1, 'サンプルマンション', '横浜駅', '横浜市', 'yokohama', 60000, '【架空のサンプル物件】駅に近く、通学にも便利なお部屋です。', 'images/property1.jpg'),
-(2, 'さくらハイツ', '桜木町駅', '横浜市', 'yokohama', 55000, '【架空のサンプル物件】静かな住宅街にある落ち着いたお部屋です。', 'images/property2.jpg'),
+(1, 'サンプルマンション', '横浜駅', '横浜市', 'yokohama', 60000, '【架空のサンプル物件】駅に近く、通学にも便利なお部屋です。横浜駅　歩行　5分', 'images/property1.jpg'),
+(2, 'さくらハイツ', '桜木町駅', '横浜市', 'yokohama', 55000, '【架空のサンプル物件】静かな住宅街にある落ち着いたお部屋です。桜木町駅　歩行　8分　関内駅　15分', 'images/property2.jpg'),
 (3, '川崎レジデンス', '川崎駅', '川崎市', 'kanagawa', 65000, '【架空のサンプル物件】新築、オートロック付きのお部屋です。', 'images/property3.jpg'),
 (4, 'レオパレス24-12', '川崎駅', '川崎市', '令和日本語学院', 80000, '【架空のサンプル物件】学校への通学に便利な物件です。', 'images/property4.jpg'),
 (5, '横浜みなとレジデンス', '横浜駅', '西区', '神奈川大学（みなとみらいキャンパス）', 88000, '【架空のサンプル物件】横浜駅やみなとみらい方面へ移動しやすい想定の部屋です。', 'images/property1.jpg'),
