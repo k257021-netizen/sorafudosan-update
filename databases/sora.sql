@@ -89,13 +89,13 @@ INSERT INTO `properties` (`name`, `station`, `area`, `school`, `rent`, `descript
 SELECT samples.`name`, samples.`station`, samples.`area`, samples.`school`, samples.`rent`, samples.`description`, samples.`image`
 FROM (
     SELECT '横浜みなとレジデンス' AS `name`, '横浜駅' AS `station`, '西区' AS `area`, '神奈川大学（みなとみらいキャンパス）' AS `school`, 88000 AS `rent`, '【架空のサンプル物件】横浜駅やみなとみらい方面へ移動しやすい想定の部屋です。' AS `description`, 'images/property1.jpg' AS `image`
-    UNION ALL SELECT '白楽グリーンコート', '白楽駅', '神奈川区', '神奈川大学（横浜キャンパス）', 62000, '【架空のサンプル物件】白楽駅周辺を想定した学生向けの部屋です。', 'images/property2.jpg'
-    UNION ALL SELECT '常盤台テラス', '和田町駅', '保土ケ谷区', '横浜国立大学', 58000, '【架空のサンプル物件】常盤台方面へ通う学生を想定した部屋です。', 'images/property3.jpg'
-    UNION ALL SELECT '金沢八景シーサイド', '金沢八景駅', '金沢区', '横浜市立大学（金沢八景キャンパス）', 57000, '【架空のサンプル物件】金沢八景駅周辺を想定したコンパクトな部屋です。', 'images/property4.jpg'
-    UNION ALL SELECT '新横浜パークヒル', '新横浜駅', '港北区', 'yokohama', 72000, '【架空のサンプル物件】新幹線や市営地下鉄を利用しやすい想定の部屋です。', 'images/property1.jpg'
-    UNION ALL SELECT '鶴見リバーコート', '鶴見駅', '鶴見区', 'kanagawa', 59000, '【架空のサンプル物件】鶴見駅周辺の生活を想定した部屋です。', 'images/property2.jpg'
-    UNION ALL SELECT '関内シティハイツ', '関内駅', '中区', '令和日本語学院', 69000, '【架空のサンプル物件】関内駅周辺を想定した通学向けの部屋です。', 'images/property3.jpg'
-    UNION ALL SELECT '川崎駅前ブリーズ', '川崎駅', '川崎区', 'kanagawa', 76000, '【架空のサンプル物件】川崎駅周辺の買い物や通勤に便利な想定の部屋です。', 'images/property4.jpg'
+    UNION ALL SELECT '白楽グリーンコート', '白楽駅', '神奈川区', '神奈川大学（横浜キャンパス）', 62000, '【架空のサンプル物件】白楽駅周辺を想定した学生向けの部屋です。白楽駅　歩行　6分　　神奈川大学　10分', 'images/property2.jpg'
+    UNION ALL SELECT '常盤台テラス', '和田町駅', '保土ケ谷区', '横浜国立大学', 58000, '【架空のサンプル物件】常盤台方面へ通う学生を想定した部屋です。和田町駅　歩行　8分　　横浜国立大学　歩行　10分', 'images/property3.jpg'
+    UNION ALL SELECT '金沢八景シーサイド', '金沢八景駅', '金沢区', '横浜市立大学（金沢八景キャンパス）', 57000, '【架空のサンプル物件】金沢八景駅周辺を想定したコンパクトな部屋です。金沢八景駅　歩行　10分　　横浜市立大学　歩行　15分', 'images/property4.jpg'
+    UNION ALL SELECT '新横浜パークヒル', '新横浜駅', '港北区', 'yokohama', 72000, '【架空のサンプル物件】新幹線や市営地下鉄を利用しやすい想定の部屋です。新横浜駅　歩行　6分', 'images/property1.jpg'
+    UNION ALL SELECT '鶴見リバーコート', '鶴見駅', '鶴見区', 'kanagawa', 59000, '【架空のサンプル物件】鶴見駅周辺の生活を想定した部屋です。鶴見駅　歩行　7分', 'images/property2.jpg'
+    UNION ALL SELECT '関内シティハイツ', '関内駅', '中区', '令和日本語学院', 69000, '【架空のサンプル物件】関内駅周辺を想定した通学向けの部屋です。関内駅　歩行　6分　　桜木町駅　歩行　15分', 'images/property3.jpg'
+    UNION ALL SELECT '川崎駅前ブリーズ', '川崎駅', '川崎区', 'kanagawa', 76000, '【架空のサンプル物件】川崎駅周辺の買い物や通勤に便利な想定の部屋です。川崎駅　歩行　３分　　川崎駅（', 'images/property4.jpg'
     UNION ALL SELECT '武蔵小杉セントラル', '武蔵小杉駅', '中原区', 'kanagawa', 82000, '【架空のサンプル物件】複数路線を使う暮らしを想定した部屋です。', 'images/property1.jpg'
     UNION ALL SELECT '溝の口ミュージックハイツ', '溝の口駅', '高津区', '洗足学園音楽大学', 67000, '【架空のサンプル物件】溝の口駅周辺を想定した学生向けの部屋です。', 'images/property2.jpg'
     UNION ALL SELECT '向ヶ丘遊園メゾン', '向ヶ丘遊園駅', '多摩区', '専修大学（生田キャンパス）', 59000, '【架空のサンプル物件】向ヶ丘遊園駅周辺を想定した学生向けの部屋です。', 'images/property3.jpg'
