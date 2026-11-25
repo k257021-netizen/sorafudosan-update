@@ -17,9 +17,23 @@ if (!$property) {
 }
 $isCustomer = !empty($_SESSION['customer_id']);
 $isFavorite = $isCustomer && in_array($id, customer_favorite_ids($pdo, (int)$_SESSION['customer_id']), true);
+$favoriteCsrf = 
+$hasMyReservation = false;
+if ($isCustomer) {
+    $stmt = $pdo->prepare("SELECT 1 FROM reservations WHERE property_id = ? AND customer_id = ? AND status = 'active' LIMIT 1");
+    $stmt->execute([$id, (int)$_SESSION['customer_id']]);
+    $hasMyReservation = (bool)$stmt->fetchColumn();
+}
+$reservationMessages = [
+    'reserved' => 'お申込みを受け付けました。担当者よりご連絡いたします。',
+    'cancelled' => '予約をキャンセルしました。',
+    'unavailable' => '申し訳ありません。この物件は現在お申込みを受け付けておりません。',
+    'error' => '処理できませんでした。もう一度お試しください。',
+];
+$reservationMessage = $reservationMessages[input_string($_GET['reservation'] ?? '')] ?? '';
 $favoriteCsrf = $isCustomer ? csrf_token() : '';
 $galleryImages = [
-    ['src' => $property['image'] ?: 'images/property1.jpg', 'label' => '登録されている物件写真', 'alt' => $property['name'] . 'の登録写真'],
+    ['src' => $property['image'] ?: 'images/property1.jpg', 'label' => '', 'alt' => $property[''] . ''],
     ['src' => 'images/unsplash-exterior.jpg', 'label' => '外観の参考写真', 'alt' => '集合住宅の外観参考写真', 'credit' => 'Photo: Anthony DELANOIX / Unsplash', 'source_url' => 'https://unsplash.com/photos/apartment-building-JTcLVcE80B8'],
     ['src' => 'images/unsplash-living.jpg', 'label' => 'リビング・キッチンの参考写真', 'alt' => 'リビングとキッチンの参考写真', 'credit' => 'Photo: Danny Greenberg / Unsplash', 'source_url' => 'https://unsplash.com/photos/an-interior-shot-shows-a-modern-kitchen-and-living-room-QbdgGRQOHdM'],
     ['src' => 'images/unsplash-open-plan.jpg', 'label' => 'オープンキッチンの参考写真', 'alt' => '明るいオープンキッチンの参考写真', 'credit' => 'Photo: Louie A / Unsplash', 'source_url' => 'https://unsplash.com/photos/a-modern-kitchen-and-living-space-are-shown-e5yEXmGWjKo'],
@@ -27,6 +41,7 @@ $galleryImages = [
     ['src' => 'images/unsplash-bathroom.jpg', 'label' => '浴室の参考写真', 'alt' => 'モダンな浴室の参考写真', 'credit' => 'Photo: Billy Jo Catbagan / Unsplash', 'source_url' => 'https://unsplash.com/photos/a-bathroom-with-a-mirror-and-a-sink-o9tSmffkg7w'],
     ['src' => 'images/unsplash-kitchen.jpg', 'label' => 'キッチンの参考写真', 'alt' => 'キッチンの参考写真', 'credit' => 'Photo: Y K / Unsplash', 'source_url' => 'https://unsplash.com/photos/kitchen-interior-bn4Ve3NjQ8g'],
     ['src' => 'images/floor-plan-1k.svg', 'label' => '1K間取りイメージ（実際の間取りではありません）', 'alt' => '玄関、キッチン、浴室、居室を描いた1K間取りのイメージ'],
+    
 ];
 ?>
 <!DOCTYPE html>
