@@ -43,6 +43,12 @@ try {
 
     if ($action === 'reserve') {
         // 申込中は物件を確保し、管理者の承認後に申込を確定する。
+        $open = $pdo->prepare("SELECT id FROM reservations WHERE property_id = ? AND status IN ('pending', 'active') FOR UPDATE");
+        $open->execute([$propertyId]);
+        if ($open->fetchColumn()) {
+            $pdo->rollBack();
+            reserve_redirect($propertyId, 'unavailable');
+        }
         $stmt = $pdo->prepare("UPDATE properties SET status = 'reserved' WHERE id = ? AND status = 'available'");
         $stmt->execute([$propertyId]);
         if ($stmt->rowCount() === 0) {

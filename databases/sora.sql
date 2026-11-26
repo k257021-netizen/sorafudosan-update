@@ -60,6 +60,17 @@ CREATE TABLE `properties` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `property_images` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `property_id` int(11) NOT NULL,
+  `image_path` varchar(200) NOT NULL,
+  `sort_order` smallint NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_property_images_property_order` (`property_id`, `sort_order`, `id`),
+  CONSTRAINT `fk_property_images_property` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 INSERT INTO `properties` (`id`, `name`, `station`, `area`, `school`, `rent`, `description`, `image`) VALUES
 (1, 'サンプルマンション', '横浜駅', '横浜市', 'yokohama', 60000, '【架空のサンプル物件】駅に近く、通学にも便利なお部屋です。横浜駅　歩行　5分', 'images/property1.jpg'),
 (2, 'さくらハイツ', '桜木町駅', '横浜市', 'yokohama', 55000, '【架空のサンプル物件】静かな住宅街にある落ち着いたお部屋です。桜木町駅　歩行　8分　　関内駅　15分', 'images/property2.jpg'),
@@ -212,6 +223,22 @@ CREATE TABLE `auth_security_events` (
   KEY `customer_event_created` (`customer_id`, `event_type`, `created_at`),
   KEY `created_at` (`created_at`),
   CONSTRAINT `auth_security_events_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `reservations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `property_id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `admin_note` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `decided_at` datetime DEFAULT NULL,
+  `cancelled_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `property_status` (`property_id`, `status`),
+  KEY `customer_property` (`customer_id`, `property_id`),
+  CONSTRAINT `reservations_property_fk` FOREIGN KEY (`property_id`) REFERENCES `properties` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `reservations_customer_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 COMMIT;

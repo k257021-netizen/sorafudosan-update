@@ -6,12 +6,30 @@ if (empty($_SESSION['user_id'])) { header('Location: ../login.php'); exit; }
 $error = '';
 $serviceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_valid($_POST['csrf'] ?? '')) {
+    if ($_POST === [] && $_FILES === [] && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $error = 'アップロード合計サイズがサーバー設定の上限を超えています。写真の枚数またはサイズを減らしてください。';
+    } elseif (!csrf_valid($_POST['csrf'] ?? '')) {
         $error = 'ページの有効期限が切れました。再読み込みして、もう一度お試しください。';
     } elseif (isset($_POST['delete'])) {
-        $pdo->prepare('DELETE FROM properties WHERE id = ?')->execute([(int)$_POST['delete']]);
-        header('Location: index.php');
-        exit;
+        $propertyId = (int)$_POST['delete'];
+        $pdo->beginTransaction();
+        try {
+            $coverStmt = $pdo->prepare('SELECT image FROM properties WHERE id = ? FOR UPDATE');
+            $coverStmt->execute([$propertyId]);
+            $coverImage = $coverStmt->fetchColumn();
+            $imageStmt = $pdo->prepare('SELECT image_path FROM property_images WHERE property_id = ?');
+            $imageStmt->execute([$propertyId]);
+            $imagesToDelete = $imageStmt->fetchAll(PDO::FETCH_COLUMN);
+            if ($coverImage !== false) $imagesToDelete[] = $coverImage;
+            $pdo->prepare('DELETE FROM properties WHERE id = ?')->execute([$propertyId]);
+            $pdo->commit();
+            delete_uploaded_files($imagesToDelete);
+            header('Location: index.php');
+            exit;
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $exception;
+        }
     } elseif (isset($_POST['confirm_current'])) {
         $id = filter_var(input_string($_POST['confirm_current']), FILTER_VALIDATE_INT);
         if ($id === false || $id < 1) {
@@ -66,14 +84,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (text_length($station) > 50 || text_length($area) > 50 || text_length($school) > 50) {
             $error = '駅名、地域、学校名はそれぞれ50文字以内で入力してください。';
         } else {
-            $image = save_upload('image_file');
-            if ($image !== null && str_starts_with($image, 'ERROR:')) {
-                $error = substr($image, 6);
+            $images = save_uploads('image_files', 10);
+            if (is_string($images)) {
+                $error = substr($images, 6);
             } else {
-                $stmt = $pdo->prepare('INSERT INTO properties (name, station, area, school, transaction_type, rent, sale_price, management_fee, deposit_amount, key_money_amount, pet_allowed, layout, area_sqm, floor_number, initial_cost, description, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([$name, $station, $area, $school, $transactionType, $transactionType === 'rent' ? $rent : null, $transactionType === 'sale' ? $salePrice : null, $transactionType === 'rent' ? $managementFee : null, $transactionType === 'rent' ? $depositAmount : null, $transactionType === 'rent' ? $keyMoneyAmount : null, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $image ?? 'images/property1.jpg', 'available']);
-                header('Location: index.php');
-                exit;
+                try {
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare('INSERT INTO properties (name, station, area, school, transaction_type, rent, sale_price, management_fee, deposit_amount, key_money_amount, pet_allowed, layout, area_sqm, floor_number, initial_cost, description, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                    $stmt->execute([$name, $station, $area, $school, $transactionType, $transactionType === 'rent' ? $rent : null, $transactionType === 'sale' ? $salePrice : null, $transactionType === 'rent' ? $managementFee : null, $transactionType === 'rent' ? $depositAmount : null, $transactionType === 'rent' ? $keyMoneyAmount : null, $petAllowed, $layout, $areaSqm, $floorNumber, $initialCost, $description, $images[0] ?? 'images/property1.jpg', 'available']);
+                    $propertyId = (int)$pdo->lastInsertId();
+                    $imageStmt = $pdo->prepare('INSERT INTO property_images (property_id, image_path, sort_order) VALUES (?, ?, ?)');
+                    foreach (array_slice($images, 1) as $index => $imagePath) {
+                        $imageStmt->execute([$propertyId, $imagePath, $index + 1]);
+                    }
+                    $pdo->commit();
+                    header('Location: index.php');
+                    exit;
+                } catch (Throwable $exception) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    delete_uploaded_files($images);
+                    throw $exception;
+                }
             }
         }
     }
@@ -98,6 +129,7 @@ $dashboard = [
     'stale_properties' => (int)$staleStmt->fetchColumn(),
     'overdue_inquiries' => (int)$pdo->query("SELECT COUNT(*) FROM inquiries WHERE status IN ('new', 'in_progress') AND created_at <= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)")->fetchColumn(),
     'unread_inquiries' => (int)$pdo->query('SELECT COUNT(*) FROM inquiries WHERE is_read=0')->fetchColumn(),
+    'pending_reservations' => (int)$pdo->query("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")->fetchColumn(),
 ];
 $csrf = csrf_token();
 ?>
@@ -107,15 +139,15 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>物件管理 | Sora Living</title>
-  <link rel="stylesheet" href="../style.css?v=20261102-7">
+  <link rel="stylesheet" href="../style.css?v=20261126-11">
 </head>
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
 <div class="page-shell">
   <nav class="admin-links" aria-label="管理メニュー">
-    <a href="../index.php">サイトを見る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="documents.php">規約・ポリシー編集</a> ・ <a href="../logout.php">ログアウト</a>
+    <a href="../index.php">サイトを見る</a> ・ <a href="reservations.php">申込確認</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="documents.php">規約・ポリシー編集</a> ・ <a href="../logout.php">ログアウト</a>
   </nav>
-  <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="index.php?stale=1"><strong><?= $dashboard['stale_properties'] ?></strong><span>30日以上未確認</span></a><a href="inquiries.php?status=overdue"><strong><?= $dashboard['overdue_inquiries'] ?></strong><span>24時間以上未完了</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a></section>
+  <section class="admin-dashboard" aria-label="管理サマリー"><a href="index.php"><strong><?= $dashboard['total_properties'] ?></strong><span>登録物件</span></a><a href="index.php?status=available"><strong><?= $dashboard['available'] ?></strong><span>募集中</span></a><a href="index.php?stale=1"><strong><?= $dashboard['stale_properties'] ?></strong><span>30日以上未確認</span></a><a href="inquiries.php?status=overdue"><strong><?= $dashboard['overdue_inquiries'] ?></strong><span>24時間以上未完了</span></a><a href="inquiries.php"><strong><?= $dashboard['unread_inquiries'] ?></strong><span>未読お問い合わせ</span></a><a href="reservations.php"><strong><?= $dashboard['pending_reservations'] ?></strong><span>確認待ちの申込</span></a></section>
 
   <section class="search-section">
     <h2>物件を追加</h2>
@@ -163,8 +195,10 @@ $csrf = csrf_token();
           <option value="1" <?= input_string($_POST['pet_allowed'] ?? '0') === '1' ? 'selected' : '' ?>>可</option>
         </select>
       </label>
-      <label>物件写真（JPG・PNG・WebP、5MBまで）
-        <input type="file" name="image_file" accept="image/jpeg,image/png,image/webp">
+      <label>物件写真（最大10枚、JPG・PNG・WebP、1枚5MBまで。最初の写真が一覧のメイン写真になります）
+        <input type="file" name="image_files[]" accept="image/jpeg,image/png,image/webp" multiple data-image-upload data-max-files="10">
+        <span data-image-upload-status aria-live="polite">写真は任意です。最大10枚まで選択できます。</span>
+        <span class="admin-image-preview" data-image-preview></span>
       </label>
       <label>物件の説明
         <textarea name="description" rows="4"><?= h(input_string($_POST['description'] ?? '')) ?></textarea>
@@ -201,5 +235,6 @@ $csrf = csrf_token();
   </section>
 </div>
 <script src="../property-form.js?v=3"></script>
+<script src="../admin-images.js?v=1"></script>
 </body>
 </html>

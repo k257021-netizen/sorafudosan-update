@@ -10,7 +10,7 @@ Sora Living нь Японы Йокохама, Кавасаки орчмын тү
 4. Админ хэрэглэгчийг PHP-ээр нууц үгийн hash үүсгээд нэмнэ:
 
    ```sh
-   php -r "echo password_hash('ӨӨРИЙН_НУУЦ_ҮГ', PASSWORD_DEFAULT), PHP_EOL;"
+   php -r "echo password_hash('123', PASSWORD_DEFAULT), PHP_EOL;"
    ```
 
    Гарсан hash-ийг `users.password_hash` талбарт хадгалж, `username`-д нэвтрэх нэрээ оруулна. Жишээ SQL:
@@ -21,7 +21,7 @@ Sora Living нь Японы Йокохама, Кавасаки орчмын тү
 
 5. `http://localhost/sorafudosan-update/` нээгээд сайтыг ашиглана. Админ хэсэг: `login.php`.
 
-Хуучин `sora` өгөгдлийн сантай бол `databases/upgrade_full_features.sql`, `databases/upgrade_password_security.sql`, `databases/upgrade_site_documents.sql`, дараа нь `databases/sample_properties.sql` файлуудыг phpMyAdmin-д импортлоно. Бүрэн migration нь хуучин нэг удаагийн `upgrade_accounts_and_preferences.sql` migration-ийг орлоно. Жишээ байрны SQL-ийг дахин импортлоход ижил нэртэй байр давхар нэмэгдэхгүй.
+Хуучин `sora` өгөгдлийн сантай бол `databases/upgrade_full_features.sql`, `databases/upgrade_password_security.sql`, `databases/upgrade_site_documents.sql`, `databases/upgrade_reservations.sql`, `databases/upgrade_property_images.sql`, дараа нь `databases/sample_properties.sql` файлуудыг phpMyAdmin-д импортлоно. Бүрэн migration нь хуучин нэг удаагийн `upgrade_accounts_and_preferences.sql` migration-ийг орлоно. Жишээ байрны SQL-ийг дахин импортлоход ижил нэртэй байр давхар нэмэгдэхгүй.
 
 Эхний зардлын түрээсийн задаргааг ашиглахын тулд хуучин `sora` өгөгдлийн санд `databases/upgrade_initial_cost_breakdown.sql` файлыг нэг удаа импортлоно. Шинээр үүсгэх өгөгдлийн санд `databases/sora.sql` шинэ талбаруудыг аль хэдийн агуулсан. Админ түрээсийн урьдчилгаа, шимтгэл, батлан даалтын төлбөр, даатгал, түлхүүр солих болон бусад зардлыг оруулж, баталгаажсан задаргааны нийт дүнг автоматаар бодно. Худалдах байрны нэмэлт зардлыг нөхцөлөөс хамаардаг тул нийт дүнгээр гараар оруулна.
 
@@ -31,7 +31,7 @@ Sora Living нь Японы Йокохама, Кавасаки орчмын тү
 
 Үйлчилгээний бүс нь зөвхөн Йокохама болон Кавасаки хотын дүүргүүдийг хамарна. Сургууль, өртөөний хайлтад Йокохама/Кавасаки орчмын нэрс ашиглана.
 
-Админд байрны зураг анх оруулахад `images/uploads/` хавтас автоматаар үүснэ. PHP-д энэ хавтас үүсгэж, зураг хадгалах зөвшөөрөл шаардлагатай.
+Админ шинэ байр нэмэхдээ 10 хүртэл JPG, PNG, WebP зураг сонгож болно. Нэг зураг 5MB-аас ихгүй; эхний зураг нь нүүр зураг болж, бусад нь байрны дэлгэрэнгүй галерейд харагдана. Урьдчилан харах хэсэг сонгосон зураг болон дарааллыг харуулна. `images/uploads/` хавтас автоматаар үүснэ; PHP-д зураг хадгалах зөвшөөрөл шаардлагатай. Олон зураг зэрэг оруулахад PHP-ийн `upload_max_filesize` нь 5MB-аас, `post_max_size` нь сонгосон бүх зургийн нийт хэмжээнээс их байх ёстой.
 
 ## Сургуулийн хайлтын утгууд
 

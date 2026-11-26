@@ -7,6 +7,8 @@
   const thumbs = [...gallery.querySelectorAll('[data-gallery-thumb]')];
   const counter = gallery.querySelector('[data-gallery-count]');
   const toggle = gallery.querySelector('[data-gallery-toggle]');
+  const previous = gallery.querySelector('.gallery-prev');
+  const next = gallery.querySelector('.gallery-next');
   let current = 0;
   let timer = null;
   let paused = false;
@@ -26,6 +28,7 @@
   };
 
   const updateToggle = () => {
+    if (!toggle) return;
     toggle.textContent = paused ? '自動再生を開始' : '自動再生を停止';
     toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
   };
@@ -41,10 +44,10 @@
     if (!paused) startTimer();
   };
 
-  gallery.querySelector('.gallery-prev').addEventListener('click', () => { show(current - 1); resetTimer(); });
-  gallery.querySelector('.gallery-next').addEventListener('click', () => { show(current + 1); resetTimer(); });
+  previous?.addEventListener('click', () => { show(current - 1); resetTimer(); });
+  next?.addEventListener('click', () => { show(current + 1); resetTimer(); });
   thumbs.forEach((thumb) => thumb.addEventListener('click', () => { show(Number(thumb.dataset.galleryThumb)); resetTimer(); }));
-  toggle.addEventListener('click', () => {
+  toggle?.addEventListener('click', () => {
     paused = !paused;
     updateToggle();
     startTimer();

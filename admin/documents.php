@@ -52,7 +52,7 @@ $csrf = csrf_token();
 <body>
 <?php include __DIR__ . '/../includes/site-brand.php'; ?>
 <div class="page-shell">
-  <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="../logout.php">ログアウト</a></p>
+  <p><a href="index.php">← 物件管理へ戻る</a> ・ <a href="reservations.php">申込確認</a> ・ <a href="inquiries.php">お問い合わせ一覧</a> ・ <a href="../logout.php">ログアウト</a></p>
   <section class="search-section">
     <h1>規約・ポリシー編集</h1>
     <p>保存すると、サイトに表示される文章がすぐに更新されます。登録済みユーザーに再同意は求めません。</p>

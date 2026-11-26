@@ -37,8 +37,18 @@ $reservationMessages = [
 ];
 $reservationMessage = $reservationMessages[input_string($_GET['reservation'] ?? '')] ?? '';
 $favoriteCsrf = $isCustomer ? csrf_token() : '';
-$galleryImages = [
-    ['src' => $property['image'] ?: 'images/property1.jpg', 'label' => '物件写真', 'alt' => $property['name']],
+$imageStmt = $pdo->prepare('SELECT image_path FROM property_images WHERE property_id = ? ORDER BY sort_order ASC, id ASC');
+$imageStmt->execute([$id]);
+$additionalPropertyImages = $imageStmt->fetchAll(PDO::FETCH_COLUMN);
+$mainImage = $property['image'] ?: 'images/property1.jpg';
+$hasReferenceImages = !$additionalPropertyImages && !str_starts_with($mainImage, 'images/uploads/');
+$galleryImages = [['src' => $mainImage, 'label' => '物件写真 1', 'alt' => $property['name'] . 'の物件写真']];
+foreach ($additionalPropertyImages as $index => $imagePath) {
+    $galleryImages[] = ['src' => $imagePath, 'label' => '物件写真 ' . ($index + 2), 'alt' => $property['name'] . 'の物件写真'];
+}
+if ($hasReferenceImages) {
+    $galleryImages = [
+    ['src' => $mainImage, 'label' => '物件写真', 'alt' => $property['name']],
     ['src' => 'images/unsplash-exterior.jpg', 'label' => '外観の参考写真', 'alt' => '集合住宅の外観参考写真', 'credit' => 'Photo: Anthony DELANOIX / Unsplash', 'source_url' => 'https://unsplash.com/photos/apartment-building-JTcLVcE80B8'],
     ['src' => 'images/unsplash-living.jpg', 'label' => 'リビング・キッチンの参考写真', 'alt' => 'リビングとキッチンの参考写真', 'credit' => 'Photo: Danny Greenberg / Unsplash', 'source_url' => 'https://unsplash.com/photos/an-interior-shot-shows-a-modern-kitchen-and-living-room-QbdgGRQOHdM'],
     ['src' => 'images/unsplash-open-plan.jpg', 'label' => 'オープンキッチンの参考写真', 'alt' => '明るいオープンキッチンの参考写真', 'credit' => 'Photo: Louie A / Unsplash', 'source_url' => 'https://unsplash.com/photos/a-modern-kitchen-and-living-space-are-shown-e5yEXmGWjKo'],
@@ -46,8 +56,8 @@ $galleryImages = [
     ['src' => 'images/unsplash-bathroom.jpg', 'label' => '浴室の参考写真', 'alt' => 'モダンな浴室の参考写真', 'credit' => 'Photo: Billy Jo Catbagan / Unsplash', 'source_url' => 'https://unsplash.com/photos/a-bathroom-with-a-mirror-and-a-sink-o9tSmffkg7w'],
     ['src' => 'images/unsplash-kitchen.jpg', 'label' => 'キッチンの参考写真', 'alt' => 'キッチンの参考写真', 'credit' => 'Photo: Y K / Unsplash', 'source_url' => 'https://unsplash.com/photos/kitchen-interior-bn4Ve3NjQ8g'],
     ['src' => 'images/floor-plan-1k.svg', 'label' => '1K間取りイメージ（実際の間取りではありません）', 'alt' => '玄関、キッチン、浴室、居室を描いた1K間取りのイメージ'],
-    
-];
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -78,10 +88,12 @@ $galleryImages = [
             </figure>
           <?php endforeach; ?>
         </div>
-        <button class="gallery-arrow gallery-prev" type="button" aria-label="前の写真へ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-        <button class="gallery-arrow gallery-next" type="button" aria-label="次の写真へ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <?php if (count($galleryImages) > 1): ?>
+          <button class="gallery-arrow gallery-prev" type="button" aria-label="前の写真へ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+          <button class="gallery-arrow gallery-next" type="button" aria-label="次の写真へ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <?php endif; ?>
       </div>
-      <div class="gallery-meta"><span data-gallery-count aria-live="polite">1 / <?= count($galleryImages) ?></span><button class="gallery-toggle" type="button" data-gallery-toggle aria-pressed="false">自動再生を停止</button><span>一部は室内・間取りのイメージ画像です</span></div>
+      <div class="gallery-meta"><span data-gallery-count aria-live="polite">1 / <?= count($galleryImages) ?></span><?php if (count($galleryImages) > 1): ?><button class="gallery-toggle" type="button" data-gallery-toggle aria-pressed="false">自動再生を停止</button><?php endif; ?><?php if ($hasReferenceImages): ?><span>一部は室内・間取りのイメージ画像です</span><?php endif; ?></div>
       <div class="gallery-thumbnails" aria-label="写真を選択">
         <?php foreach ($galleryImages as $index => $image): ?>
           <button class="gallery-thumb<?= $index === 0 ? ' is-active' : '' ?>" type="button" data-gallery-thumb="<?= $index ?>" aria-label="<?= h($image['label']) ?>" aria-current="<?= $index === 0 ? 'true' : 'false' ?>">
