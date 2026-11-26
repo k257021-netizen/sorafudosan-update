@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <meter data-password-strength class="password-strength" min="0" max="4" value="0" aria-label="パスワード強度の目安"></meter>
       <p id="register-password-strength-text" data-password-strength-text class="password-hint" aria-live="polite">パスワードを入力してください。</p>
-      <label for="register_password_confirm">パスワード（確認）</label>
+      <label for="register_password_confirm">パスワード（確認）
       <div class="password-field">
         <input id="register_password_confirm" type="password" name="password_confirm" required minlength="8" maxlength="72" autocomplete="new-password" aria-describedby="register_password_match">
         <button class="password-toggle" type="button" aria-controls="register_password_confirm" aria-pressed="false">表示</button>
