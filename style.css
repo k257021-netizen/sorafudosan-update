@@ -96,6 +96,12 @@ h1 { margin: 0; color: #183b5c; font-size: clamp(2.25rem, 6vw, 4.2rem); line-hei
 .filter-form label { color: #425466; font-size: .93rem; font-weight: 700; }
 .filter-form select, .search-section select { min-width: 190px; min-height: 46px; padding: 9px 36px 9px 12px; border: 1px solid #cbd5df; border-radius: 10px; color: var(--ink); background-color: #fff; }
 .filter-form .primary-button { min-height: 46px; }
+.filter-form-inline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; justify-content: stretch; }
+.filter-form-inline > label { display: grid; gap: 5px; margin: 0; }
+.filter-form-inline > label select { width: 100%; min-width: 0; }
+.condition-price-field { display: flex; min-width: 0; min-height: 82px; align-items: end; }
+.condition-price-field label { display: grid; flex: 1; gap: 5px; min-width: 0; }
+.condition-price-field select { width: 100%; min-width: 0; }
 
 .site-footer { margin-top: 34px; padding: 18px 22px; border: 1px solid #d5e1eb; border-radius: 16px; color: #43576a; text-align: center; background: rgba(255,255,255,.94); box-shadow: 0 8px 20px rgba(24,49,75,.08); }
 .site-footer p { margin: 0; font-size: .92rem; font-weight: 600; }
@@ -164,19 +170,33 @@ h1 { margin: 0; color: #183b5c; font-size: clamp(2.25rem, 6vw, 4.2rem); line-hei
 .skip-link { position: fixed; z-index: 1000; top: 10px; left: 10px; padding: 10px 14px; transform: translateY(-160%); border-radius: 8px; color: #fff; background: #183b5c; }
 .skip-link:focus { transform: translateY(0); color: #fff; }
 .page-title { margin: 0 0 14px; color: #203e5a; font-size: clamp(1.35rem, 3vw, 1.8rem); }
-.admin-dashboard { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 16px 0 22px; }
+.admin-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin: 16px 0 22px; }
 .admin-dashboard a { display: flex; flex-direction: column; gap: 3px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: #fff; text-decoration: none; box-shadow: 0 4px 14px rgba(24,49,75,.06); }
 .admin-dashboard a:hover { border-color: #9dbbd4; }
 .admin-dashboard strong { color: var(--brand-dark); font-size: 1.7rem; line-height: 1.2; }
 .admin-dashboard span { color: var(--muted); font-size: .9rem; }
 .admin-fields-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .admin-fields-grid label { min-width: 0; }
+.initial-cost-panel { margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fbfd; }
+.initial-cost-panel legend { padding: 0 7px; color: #203e5a; font-weight: 700; }
+.initial-cost-panel > p { margin: 8px 0; color: var(--muted); font-size: .9rem; }
+.initial-cost-panel .consent-check { font-weight: 700; }
+.initial-cost-breakdown { margin: 10px 0 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; background: #f8fbfd; }
+.initial-cost-breakdown summary { color: var(--brand-dark); font-weight: 700; cursor: pointer; }
+.initial-cost-breakdown ul { margin: 10px 0; padding-left: 22px; }
+.initial-cost-breakdown > p { margin: 8px 0 0; color: var(--muted); font-size: .88rem; }
 .admin-filter { align-items: center; margin: 14px 0; }
+.reservation-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.reservation-actions form { margin: 0; }
 .admin-filter a, .reset-filter { padding: 9px 12px; border-radius: 8px; background: var(--soft); }
 .admin-note { padding: 10px 12px; border-left: 3px solid #9dbbd4; background: #f5f8fb; }
 .admin-notice-count { color: var(--muted); }
 .review-needed { color: #9a4c00; }
 .search-refine { padding: 14px; border-radius: 12px; background: #f7f9fb; }
+.search-criteria-summary { margin: 12px 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fbfd; }
+.search-criteria-summary ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 9px 0 0; padding: 0; list-style: none; }
+.search-criteria-summary li { display: inline-flex; flex-wrap: wrap; gap: 5px; padding: 6px 10px; border: 1px solid #dce7ef; border-radius: 999px; color: #344b60; background: #fff; font-size: .88rem; }
+.search-criteria-summary li span { color: var(--muted); font-weight: 700; }
 .search-refine .reset-filter { align-self: end; }
 .property-card .fav-button { min-height: 42px; }
 
@@ -196,7 +216,11 @@ h1 { margin: 0; color: #183b5c; font-size: clamp(2.25rem, 6vw, 4.2rem); line-hei
     .option:last-child { grid-column: 1 / -1; }
     .browse-panel { padding: 18px 14px; }
     .filter-form { align-items: stretch; flex-direction: column; }
+    .filter-form-inline { display: flex; align-items: stretch; flex-direction: column; }
     .filter-form label { margin-top: 6px; }
+    .filter-form-inline > label { margin-top: 6px; }
+    .condition-price-field { min-height: 82px; }
+    .condition-price-field label { margin-top: 0; }
     .filter-form select, .filter-form .primary-button { width: 100%; }
     .search-section { padding: 18px 15px; }
     .search-container { gap: 4px; }

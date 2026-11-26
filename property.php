@@ -17,23 +17,28 @@ if (!$property) {
 }
 $isCustomer = !empty($_SESSION['customer_id']);
 $isFavorite = $isCustomer && in_array($id, customer_favorite_ids($pdo, (int)$_SESSION['customer_id']), true);
-$favoriteCsrf = 
 $hasMyReservation = false;
+$myReservationStatus = '';
 if ($isCustomer) {
-    $stmt = $pdo->prepare("SELECT 1 FROM reservations WHERE property_id = ? AND customer_id = ? AND status = 'active' LIMIT 1");
+    $stmt = $pdo->prepare('SELECT status FROM reservations WHERE property_id = ? AND customer_id = ? ORDER BY id DESC LIMIT 1');
     $stmt->execute([$id, (int)$_SESSION['customer_id']]);
-    $hasMyReservation = (bool)$stmt->fetchColumn();
+    $myReservationStatus = (string)($stmt->fetchColumn() ?: '');
+    $hasMyReservation = in_array($myReservationStatus, ['pending', 'active'], true);
+}
+if ($property['status'] === 'reserved' && !$hasMyReservation) {
+    http_response_code(404);
+    exit('物件が見つかりませんでした。');
 }
 $reservationMessages = [
-    'reserved' => 'お申込みを受け付けました。担当者よりご連絡いたします。',
-    'cancelled' => '予約をキャンセルしました。',
+    'pending' => 'お申込みを受け付けました。担当者が確認後、ご連絡いたします。承認前の受付状態です。',
+    'cancelled' => '申込をキャンセルしました。',
     'unavailable' => '申し訳ありません。この物件は現在お申込みを受け付けておりません。',
-    'error' => '処理できませんでした。もう一度お試しください。',
+    'error' => '処理できませんでした。もう一度お試しください。',  
 ];
 $reservationMessage = $reservationMessages[input_string($_GET['reservation'] ?? '')] ?? '';
 $favoriteCsrf = $isCustomer ? csrf_token() : '';
 $galleryImages = [
-    ['src' => $property['image'] ?: 'images/property1.jpg', 'label' => '', 'alt' => $property[''] . ''],
+    ['src' => $property['image'] ?: 'images/property1.jpg', 'label' => '物件写真', 'alt' => $property['name']],
     ['src' => 'images/unsplash-exterior.jpg', 'label' => '外観の参考写真', 'alt' => '集合住宅の外観参考写真', 'credit' => 'Photo: Anthony DELANOIX / Unsplash', 'source_url' => 'https://unsplash.com/photos/apartment-building-JTcLVcE80B8'],
     ['src' => 'images/unsplash-living.jpg', 'label' => 'リビング・キッチンの参考写真', 'alt' => 'リビングとキッチンの参考写真', 'credit' => 'Photo: Danny Greenberg / Unsplash', 'source_url' => 'https://unsplash.com/photos/an-interior-shot-shows-a-modern-kitchen-and-living-room-QbdgGRQOHdM'],
     ['src' => 'images/unsplash-open-plan.jpg', 'label' => 'オープンキッチンの参考写真', 'alt' => '明るいオープンキッチンの参考写真', 'credit' => 'Photo: Louie A / Unsplash', 'source_url' => 'https://unsplash.com/photos/a-modern-kitchen-and-living-space-are-shown-e5yEXmGWjKo'],
@@ -50,7 +55,7 @@ $galleryImages = [
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= h($property['name']) ?> | Sora Living</title>
-  <link rel="stylesheet" href="style.css?v=20261102-6">
+  <link rel="stylesheet" href="style.css?v=20261126-10">
 </head>
 <body>
 <?php include ((basename(__DIR__) === 'admin' ? dirname(__DIR__) : __DIR__) . '/includes/site-brand.php'); ?>
@@ -58,6 +63,10 @@ $galleryImages = [
   <p><a href="index.php">← お部屋探しに戻る</a></p>
   <article class="search-section">
     <h2><?= h($property['name']) ?></h2>
+    <?php if ($reservationMessage !== ''): ?>
+  <p class="success-message" role="status"><?= h($reservationMessage) ?></p>
+<?php endif; ?>
+    <?php if ($myReservationStatus === 'rejected'): ?><p class="error-message" role="status">前回のお申込は見送られました。詳しい内容はお問い合わせください。</p><?php endif; ?>
     <p class="transaction-badge"><?= $property['transaction_type'] === 'sale' ? '売買物件' : '賃貸物件' ?></p>
     <section class="property-gallery" aria-label="物件写真">
       <div class="gallery-stage">
@@ -92,20 +101,61 @@ $galleryImages = [
       <?php if ($property['deposit_amount'] !== null): ?><p><strong>敷金：</strong><?= number_format((int)$property['deposit_amount']) ?>円</p><?php endif; ?>
       <?php if ($property['key_money_amount'] !== null): ?><p><strong>礼金：</strong><?= number_format((int)$property['key_money_amount']) ?>円</p><?php endif; ?>
       <?php if ($property['initial_cost'] !== null): ?><p><strong>初期費用の目安：</strong><?= number_format((int)$property['initial_cost']) ?>円</p><?php endif; ?>
+      <?php if ((int)($property['initial_cost_breakdown_enabled'] ?? 0) === 1): ?>
+        <details class="initial-cost-breakdown">
+          <summary>初期費用の内訳を見る</summary>
+          <ul>
+            <li>前家賃・日割り家賃：<?= number_format((int)$property['upfront_rent_amount']) ?>円</li>
+            <li>管理費・共益費：<?= number_format((int)$property['management_fee']) ?>円</li>
+            <li>敷金：<?= number_format((int)$property['deposit_amount']) ?>円</li>
+            <li>礼金：<?= number_format((int)$property['key_money_amount']) ?>円</li>
+            <li>仲介手数料（税込）：<?= number_format((int)$property['brokerage_fee_amount']) ?>円</li>
+            <li>保証会社利用料：<?= number_format((int)$property['guarantee_fee_amount']) ?>円</li>
+            <li>火災保険料：<?= number_format((int)$property['insurance_fee_amount']) ?>円</li>
+            <li>鍵交換費：<?= number_format((int)$property['key_exchange_fee_amount']) ?>円</li>
+            <li>その他契約費用：<?= number_format((int)$property['other_initial_fee_amount']) ?>円</li>
+          </ul>
+          <p>概算です。契約条件や入居日により変わります。敷金は退去時に精算され、残額が返還される場合があります。</p>
+        </details>
+      <?php endif; ?>
     <?php else: ?>
       <p class="price"><strong>販売価格：</strong><?= number_format((int)$property['sale_price']) ?>円</p>
       <?php if ($property['initial_cost'] !== null): ?><p><strong>諸費用の目安：</strong><?= number_format((int)$property['initial_cost']) ?>円</p><?php endif; ?>
     <?php endif; ?>
     <p><strong>ペット：</strong><?= (int)$property['pet_allowed'] === 1 ? '相談可' : '不可' ?></p>
-    <p><strong>募集状況：</strong><?= ['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中' ?> ・ 更新 <?= h(substr((string)$property['updated_at'],0,10)) ?></p>
+    <p><strong>募集状況：</strong><?= $myReservationStatus === 'pending' ? '申込確認中' : ($myReservationStatus === 'active' ? '申込承認済み' : (['available'=>'募集中','reserved'=>'申込あり','rented'=>'契約済み'][$property['status']] ?? '募集中')) ?> ・ 更新 <?= h(substr((string)$property['updated_at'],0,10)) ?></p>
     <?php if (trim((string)$property['description']) !== ''): ?>
       <p><?= nl2br(h($property['description'])) ?></p>
     <?php endif; ?>
     <p><button type="button" class="fav-button" data-id="<?= (int)$property['id'] ?>" data-authenticated="<?= $isCustomer ? '1' : '0' ?>" data-favorite="<?= $isFavorite ? '1' : '0' ?>" data-csrf="<?= h($favoriteCsrf) ?>"></button></p>
-    <?php if ($property['status'] !== 'rented'): ?><p><a class="contact-link" href="contact.php?property_id=<?= (int)$property['id'] ?>">この物件について問い合わせる</a></p><?php else: ?><p>こちらの物件は契約済みです。</p><?php endif; ?>
+    <?php if ($property['status'] === 'available'): ?>
+  <?php if ($isCustomer): ?>
+    <p>申込後、管理者が内容を確認します。承認後に担当者からご連絡します。</p>
+    <form method="POST" action="reverve.php">
+      <input type="hidden" name="csrf" value="<?= h($favoriteCsrf) ?>">
+      <input type="hidden" name="property_id" value="<?= (int)$property['id'] ?>">
+      <input type="hidden" name="action" value="reserve">
+      <button type="submit" class="contact-link">この物件に申し込む</button>
+    </form>
+  <?php else: ?>
+    <p><a href="member-login.php">予約するにはログインしてください</a></p>
+  <?php endif; ?>
+  <p><a href="contact.php?property_id=<?= (int)$property['id'] ?>">この物件について問い合わせる</a></p>
+<?php elseif ($hasMyReservation): ?>
+  <form method="POST" action="reverve.php" onsubmit="return confirm('申込を取り消しますか？');">
+    <input type="hidden" name="csrf" value="<?= h($favoriteCsrf) ?>">
+    <input type="hidden" name="property_id" value="<?= (int)$property['id'] ?>">
+    <input type="hidden" name="action" value="cancel">
+    <button type="submit" class="secondary-button">申込を取り消す</button>
+  </form>
+<?php elseif ($property['status'] === 'rented'): ?>
+  <p>こちらの物件は契約済みです。</p>
+<?php else: ?>
+  <p>こちらの物件は現在お申込みを受け付けておりません。</p>
+<?php endif; ?>
   </article>
 </div>
-<script src="favorites.js"></script>
+<script src="favorites.js?v=20261126-1"></script>
 <script src="property-gallery.js?v=5"></script>
 </body>
 </html>

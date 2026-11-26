@@ -6,7 +6,7 @@ $homeFavoriteIds = !empty($_SESSION['customer_id'])
 $homeFavoriteCsrf = !empty($_SESSION['customer_id']) ? csrf_token() : '';
 $homeServiceAreas = ['鶴見区', '神奈川区', '西区', '中区', '南区', '港南区', '保土ケ谷区', '旭区', '磯子区', '金沢区', '港北区', '緑区', '青葉区', '都筑区', '戸塚区', '栄区', '泉区', '瀬谷区', '川崎区', '幸区', '中原区', '高津区', '宮前区', '多摩区', '麻生区', '横浜市', '川崎市'];
 $homeAreaPlaceholders = implode(',', array_fill(0, count($homeServiceAreas), '?'));
-$homePropertyStmt = $pdo->prepare("SELECT id, name, station, area, transaction_type, rent, sale_price, image, description, pet_allowed, layout FROM properties WHERE area IN ($homeAreaPlaceholders) AND status = 'available' ORDER BY updated_at DESC, id DESC LIMIT 4");
+$homePropertyStmt = $pdo->prepare("SELECT id, name, station, area, transaction_type, rent, sale_price, image, description, pet_allowed, layout, initial_cost FROM properties WHERE area IN ($homeAreaPlaceholders) AND status = 'available' ORDER BY updated_at DESC, id DESC LIMIT 4");
 $homePropertyStmt->execute($homeServiceAreas);
 $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -18,7 +18,7 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="theme-color" content="#f5f7fb">
     <meta name="description" content="横浜・川崎エリアの賃貸・売買物件探しを、Sora Livingがお手伝いします。学校や駅、価格の条件から物件を検索できます。">
     <title>住まい探し | Sora Living</title>
-    <link rel="stylesheet" href="style.css?v=20261102-7">
+    <link rel="stylesheet" href="style.css?v=20261126-9">
 </head>
 <body class="home-page">
     <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -84,7 +84,7 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
                         <img src="images/google-maps.png" alt="" aria-hidden="true">
                         <span>地域から探す</span>
                     </button>
-                    <a class="option option-link" href="favorites.php">
+                    <a class="option option-link" href="<?= !empty($_SESSION['customer_id']) ? 'favorites.php' : 'member-login.php' ?>">
                         <img src="images/heart.png" alt="" aria-hidden="true">
                         <span>お気に入り</span>
                     </a>
@@ -188,20 +188,24 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
             <section id="condition-section" class="search-section search-panel" aria-labelledby="condition-title" hidden>
                 <h2 id="condition-title">条件から探す</h2>
                 <form action="search.php" method="GET" class="filter-form filter-form-inline">
-                    <label for="transaction-type-search">物件種別</label>
-                    <select id="transaction-type-search" name="transaction_type" data-transaction-type><option value="">賃貸・売買どちらも</option><option value="rent">賃貸</option><option value="sale">売買</option></select>
-                    <label for="max-rent" data-type-fields="rent">家賃の上限
-                    <select id="max-rent" name="max_rent">
-                        <option value="">指定なし</option>
-                        <option value="50000">50,000円まで</option>
-                        <option value="60000">60,000円まで</option>
-                        <option value="70000">70,000円まで</option>
-                        <option value="80000">80,000円まで</option>
-                    </select></label>
-                    <label for="max-sale-price" data-type-fields="sale">販売価格の上限
-                    <select id="max-sale-price" name="max_sale_price"><option value="">指定なし</option><option value="30000000">3,000万円まで</option><option value="50000000">5,000万円まで</option><option value="80000000">8,000万円まで</option></select>
+                    <label class="condition-field" for="transaction-type-search">物件種別
+                        <select id="transaction-type-search" name="transaction_type" data-transaction-type><option value="">賃貸・売買どちらも</option><option value="rent">賃貸</option><option value="sale">売買</option></select>
                     </label>
-                    <label for="condition-station">最寄り駅</label>
+                    <div class="condition-price-field">
+                        <label for="max-rent" data-type-fields="rent">家賃の上限
+                            <select id="max-rent" name="max_rent">
+                                <option value="">指定なし</option>
+                                <option value="50000">50,000円まで</option>
+                                <option value="60000">60,000円まで</option>
+                                <option value="70000">70,000円まで</option>
+                                <option value="80000">80,000円まで</option>
+                            </select>
+                        </label>
+                        <label for="max-sale-price" data-type-fields="sale">販売価格の上限
+                            <select id="max-sale-price" name="max_sale_price"><option value="">指定なし</option><option value="30000000">3,000万円まで</option><option value="50000000">5,000万円まで</option><option value="80000000">8,000万円まで</option></select>
+                        </label>
+                    </div>
+                    <label class="condition-field" for="condition-station">最寄り駅
                     <select id="condition-station" name="station">
                         <option value="">指定なし</option>
                         <option value="横浜駅">横浜駅</option><option value="新横浜駅">新横浜駅</option>
@@ -210,24 +214,24 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
                         <option value="関内駅">関内駅</option><option value="金沢八景駅">金沢八景駅</option>
                         <option value="戸塚駅">戸塚駅</option><option value="京急川崎駅">京急川崎駅</option>
                         <option value="登戸駅">登戸駅</option><option value="新百合ヶ丘駅">新百合ヶ丘駅</option>
-                    </select>
-                    <label for="condition-layout">間取り</label>
+                    </select></label>
+                    <label class="condition-field" for="condition-layout">間取り
                     <select id="condition-layout" name="layout">
                         <option value="">指定なし</option>
                         <option value="1R">1R</option><option value="1K">1K</option>
                         <option value="1DK">1DK</option><option value="1LDK">1LDK</option>
                         <option value="2DK">2DK</option><option value="2LDK">2LDK</option><option value="3LDK">3LDK</option>
-                    </select>
-                    <label for="condition-pets">ペット</label>
+                    </select></label>
+                    <label class="condition-field" for="condition-pets">ペット
                     <select id="condition-pets" name="pet_allowed">
                         <option value="">指定なし</option>
                         <option value="1">ペット可</option>
                         <option value="0">ペット不可</option>
-                    </select>
-                    <label for="condition-area">専有面積の下限（m²）</label>
-                    <select id="condition-area" name="min_area"><option value="">指定なし</option><option value="20">20m²以上</option><option value="30">30m²以上</option><option value="40">40m²以上</option></select>
-                    <label for="condition-initial-cost">初期費用の上限</label>
-                    <select id="condition-initial-cost" name="max_initial_cost"><option value="">指定なし</option><option value="150000">150,000円まで</option><option value="250000">250,000円まで</option><option value="350000">350,000円まで</option></select>
+                    </select></label>
+                    <label class="condition-field" for="condition-area">専有面積の下限（m²）
+                    <select id="condition-area" name="min_area"><option value="">指定なし</option><option value="20">20m²以上</option><option value="30">30m²以上</option><option value="40">40m²以上</option></select></label>
+                    <label class="condition-field" for="condition-initial-cost">初期費用の上限
+                    <select id="condition-initial-cost" name="max_initial_cost"><option value="">指定なし</option><option value="150000">150,000円まで</option><option value="250000">250,000円まで</option><option value="350000">350,000円まで</option></select></label>
                     <button type="submit" class="primary-button">物件を探す</button>
                 </form>
             </section>
@@ -251,6 +255,7 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php if ($property['area']): ?><p><?= h($property['area']) ?></p><?php endif; ?>
                         <p>間取り：<?= h($property['layout']) ?> ・ ペット<?= (int)$property['pet_allowed'] === 1 ? '可' : '不可' ?></p>
                         <p class="price"><?= $property['transaction_type'] === 'sale' ? '販売価格' : '家賃（月額）' ?> <?= number_format((int)($property['sale_price'] ?? $property['rent'] ?? 0)) ?>円</p>
+                        <?php if ($property['initial_cost'] !== null): ?><p><?= $property['transaction_type'] === 'sale' ? '諸費用' : '初期費用' ?>の目安 <?= number_format((int)$property['initial_cost']) ?>円</p><?php endif; ?>
                         <button type="button" class="fav-button" data-id="<?= (int)$property['id'] ?>" data-authenticated="<?= !empty($_SESSION['customer_id']) ? '1' : '0' ?>" data-favorite="<?= isset($homeFavoriteIds[(int)$property['id']]) ? '1' : '0' ?>" data-csrf="<?= h($homeFavoriteCsrf) ?>"></button>
                     </article>
                     <?php endforeach; ?>
@@ -261,12 +266,12 @@ $homeProperties = $homePropertyStmt->fetchAll(PDO::FETCH_ASSOC);
         </main>
 
         <footer class="site-footer">
-            <p><a href="contact.php">お問い合わせ</a><span aria-hidden="true">・</span><a href="privacy.php">プライバシーポリシー</a><span aria-hidden="true">・</span><a href="terms.php">利用規約</a><span aria-hidden="true">・</span><a href="login.php">管理者ログイン</a></p>
+            <p><a href="contact.php">お問い合わせ</a><span aria-hidden="true">・</span><a href="privacy.php">プライバシーポリシー</a><span aria-hidden="true">・</span><a href="terms.php">利用規約</a><span aria-hidden="true">・</span><a href="login.php">管理者ログイン</a><span class="business-hours">営業時間：9:00〜18:00（定休日：水曜日）</span></p>
             <small>&copy; Sora Living</small>
         </footer>
     </div>
     <script src="script.js"></script>
-    <script src="favorites.js"></script>
-    <script src="property-form.js?v=3"></script>
+    <script src="favorites.js?v=20261126-1"></script>
+    <script src="property-form.js?v=5"></script>
 </body>
 </html>

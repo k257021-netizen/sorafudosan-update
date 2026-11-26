@@ -4,7 +4,11 @@
 
 The current local `sora` database has the full-feature, password-security, and site-document migrations applied. For another existing installation, select the `sora` database in phpMyAdmin and import `databases/upgrade_full_features.sql`, `databases/upgrade_password_security.sql`, then `databases/upgrade_site_documents.sql`. These migrations are repeatable and keep existing records. Existing customer sessions will need to sign in again after the password-security migration. Do not import the older one-time account migration.
 
-Property floor area, floor number, and initial-cost estimate are optional. Existing listings are left blank rather than assigned invented values; enter verified listing details in Admin so they can be displayed and matched by those filters.
+Property floor area and floor number are optional. Existing listings are left blank rather than assigned invented values. For an existing database, import `databases/upgrade_initial_cost_breakdown.sql` once in phpMyAdmin before using the updated Admin forms. It preserves existing listings and their current cost estimates. For new installs, `databases/sora.sql` already includes the new fields.
+
+For rental listings, Admin can enter the confirmed contract-cost breakdown and automatically total the first/prorated rent, management fee, deposit, key money, brokerage fee, guarantee fee, fire insurance, key exchange, and other contract charges. Enter `0` for a confirmed non-applicable charge; leave unknown charges blank and do not enable the breakdown until all items are confirmed. The sale listing's purchase-cost estimate remains a manual total because actual costs depend on taxes, registration, and financing conditions. Estimates should be checked against the current property-specific quote before publication.
+
+Customer applications now remain pending until an administrator approves or rejects them under Admin → 申込確認. A pending application holds the listing as reserved; rejection reopens it, and approval sends a status email when mail is configured. The Admin dashboard also flags active listings with missing station, floor area, initial-cost estimate, description, sample text, or placeholder photos so verified listing data can be completed before publication. Admin sign-in is limited to five failed attempts per username/IP pair and twenty per IP in a 15-minute window.
 
 ## Production account and mail settings
 

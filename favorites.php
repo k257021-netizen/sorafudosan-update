@@ -20,6 +20,7 @@ if ($isCustomer) {
         $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -58,6 +59,6 @@ if ($isCustomer) {
     </div>
   </section>
 </div>
-<script src="favorites.js"></script>
+<script src="favorites.js?v=20261126-1"></script>
 </body>
 </html>

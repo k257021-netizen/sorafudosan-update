@@ -42,7 +42,7 @@ try {
     $pdo->beginTransaction();
 
     if ($action === 'reserve') {
-        // 募集中の場合のみ申込ありに変更（同時申込みの二重登録を防ぐ）
+        // 申込中は物件を確保し、管理者の承認後に申込を確定する。
         $stmt = $pdo->prepare("UPDATE properties SET status = 'reserved' WHERE id = ? AND status = 'available'");
         $stmt->execute([$propertyId]);
         if ($stmt->rowCount() === 0) {
@@ -50,15 +50,15 @@ try {
             reserve_redirect($propertyId, 'unavailable');
         }
 
-        $pdo->prepare("INSERT INTO reservations (property_id, customer_id, status) VALUES (?, ?, 'active')")
+        $pdo->prepare("INSERT INTO reservations (property_id, customer_id, status) VALUES (?, ?, 'pending')")
             ->execute([$propertyId, $customerId]);
         $pdo->commit();
-        reserve_redirect($propertyId, 'reserved');
+        reserve_redirect($propertyId, 'pending');
     }
 
     if ($action === 'cancel') {
-        // 本人の有効な予約のみキャンセル可能
-        $stmt = $pdo->prepare("SELECT id FROM reservations WHERE property_id = ? AND customer_id = ? AND status = 'active' FOR UPDATE");
+        // 本人の審査中または承認済みの申込のみキャンセル可能
+        $stmt = $pdo->prepare("SELECT id FROM reservations WHERE property_id = ? AND customer_id = ? AND status IN ('pending', 'active') FOR UPDATE");
         $stmt->execute([$propertyId, $customerId]);
         $reservationId = $stmt->fetchColumn();
         if (!$reservationId) {
@@ -68,8 +68,12 @@ try {
 
         $pdo->prepare("UPDATE reservations SET status = 'cancelled', cancelled_at = CURRENT_TIMESTAMP WHERE id = ?")
             ->execute([$reservationId]);
-        $pdo->prepare("UPDATE properties SET status = 'available' WHERE id = ? AND status = 'reserved'")
-            ->execute([$propertyId]);
+        $otherRequests = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE property_id = ? AND id <> ? AND status IN ('pending', 'active')");
+        $otherRequests->execute([$propertyId, (int)$reservationId]);
+        if ((int)$otherRequests->fetchColumn() === 0) {
+            $pdo->prepare("UPDATE properties SET status = 'available' WHERE id = ? AND status = 'reserved'")
+                ->execute([$propertyId]);
+        }
         $pdo->commit();
         reserve_redirect($propertyId, 'cancelled');
     }

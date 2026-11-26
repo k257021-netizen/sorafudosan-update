@@ -47,6 +47,22 @@ function valid_password_length(string $password): bool {
     return text_length($password) >= 8 && strlen($password) <= 72;
 }
 
+function parse_optional_yen($value): int|false|null {
+    $raw = trim(input_string($value));
+    if ($raw === '') return null;
+    $amount = filter_var($raw, FILTER_VALIDATE_INT);
+    return $amount === false || $amount < 0 || $amount > 2147483647 ? false : $amount;
+}
+
+function sum_yen_amounts(array $amounts): int|false {
+    $total = 0;
+    foreach ($amounts as $amount) {
+        if (!is_int($amount) || $amount < 0 || $amount > 2147483647 - $total) return false;
+        $total += $amount;
+    }
+    return $total;
+}
+
 function log_customer_security_event(PDO $pdo, int $customerId, string $event): void {
     $ipAddress = filter_var($_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP);
     $rawUserAgent = input_string($_SERVER['HTTP_USER_AGENT'] ?? '');
